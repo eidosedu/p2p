@@ -1,0 +1,3012 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Eidos-ABA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input, textarea, select {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .animate-shake {
+      animation: shakeError 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes floatStar {
+      0% { transform: translateY(15px) scale(0.8); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .star-pop {
+      animation: floatStar 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col bg-slate-100">
+
+  <!-- TOPBAR FIXA -->
+  <header class="h-16 bg-slate-900 text-white px-3 md:px-5 flex items-center justify-between shrink-0 border-b border-slate-800 z-20">
+    <div class="flex items-center gap-2.5">
+      <button onclick="handleAndroidBack()" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition" title="Voltar">
+        <svg class="w-5 h-5 text-slate-200" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-lg tracking-tighter">E</div>
+        <div>
+          <h1 class="font-extrabold text-sm md:text-base tracking-tight leading-none">Eidos-ABA</h1>
+          <p class="text-[11px] text-slate-400 font-medium hidden sm:block">Instrumento Operacional & DTT</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controles Centrais e Direita -->
+    <div class="flex items-center gap-2">
+      <!-- Data da Sessão -->
+      <div class="hidden lg:flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5">
+        <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <input type="date" id="activeDateInput" onchange="AppState.setActiveDate(this.value)" class="bg-transparent text-xs font-semibold text-slate-200 focus:outline-none cursor-pointer" />
+      </div>
+
+      <!-- Seletor de Aprendiz + Badge de Gamificação -->
+      <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1.5">
+        <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        <select id="studentSelectHeader" onchange="AppState.selectStudent(this.value)" class="bg-transparent text-xs font-bold text-white focus:outline-none max-w-[130px] sm:max-w-[180px] truncate cursor-pointer"></select>
+        
+        <!-- Estrelas Acumuladas do Aprendiz -->
+        <div id="headerStudentPointsBadge" class="hidden sm:flex items-center gap-1 bg-amber-500/20 border border-amber-400/30 px-2 py-0.5 rounded-lg text-amber-300 text-xs font-black">
+          <svg class="w-3.5 h-3.5 text-amber-400 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+          <span id="headerPointsValue">0</span>
+        </div>
+
+        <button onclick="UI.openStudentsModal()" class="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition" title="Gerenciar Aprendizes">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+      </div>
+
+      <!-- Botão Cloud Packs Sync -->
+      <button onclick="UI.openSyncModal()" class="h-9 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold flex items-center gap-1.5 transition shrink-0" title="Sincronizar Pacotes da Nuvem">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg>
+        <span class="hidden md:inline">Pacotes Nuvem</span>
+      </button>
+
+      <!-- Botão Settings (Critérios por Nível) -->
+      <button onclick="UI.openSettingsModal()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center transition shrink-0" title="Configurações e Critérios ABA">
+        <svg class="w-4 h-4 text-slate-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- CORPO PRINCIPAL -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- SIDEBAR -->
+    <aside class="w-16 md:w-56 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 z-10">
+      <nav class="p-2 space-y-1">
+        <button onclick="switchView('curriculum')" id="nav-curriculum" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-xs md:text-sm transition text-left">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="hidden md:inline">Jogos & Tarefas</span>
+        </button>
+
+        <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-xs md:text-sm transition text-left">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span class="hidden md:inline">Evolução & Dias</span>
+        </button>
+
+        <button onclick="switchView('editor')" id="nav-editor" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-xs md:text-sm transition text-left">
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <span class="hidden md:inline">Editor de Módulos</span>
+        </button>
+      </nav>
+
+      <!-- Card Lateral de Gamificação do Aluno Ativo -->
+      <div class="p-3 hidden md:block border-t border-slate-100">
+        <div id="sidebarGamificationCard" class="bg-slate-900 text-white rounded-2xl p-3.5 space-y-2">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 overflow-y-auto relative" id="mainViewport">
+
+      <!-- ==========================================
+           VIEW 1: CATÁLOGO DE JOGOS E MÓDULOS
+           ========================================== -->
+      <section id="view-curriculum" class="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+        <!-- Aviso caso não haja aluno cadastrado -->
+        <div id="emptyStudentsBanner" class="hidden bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-slate-900 text-sm md:text-base">Nenhum aprendiz cadastrado</h3>
+              <p class="text-xs text-slate-600">Cadastre seu primeiro aprendiz para registrar sessões, acumular pontos e sincronizar pacotes individuais.</p>
+            </div>
+          </div>
+          <button onclick="UI.openStudentsModal()" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shrink-0">
+            Cadastrar Aprendiz Agora
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="levelTabsContainer"></div>
+        <div id="activeLevelBanner" class="rounded-2xl p-4 md:p-5 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"></div>
+        <div id="gamesGridContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-12"></div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 2: O PALCO DO ALUNO (PLAYER DTT)
+           ========================================== -->
+      <section id="view-player" class="hidden h-full flex flex-col bg-slate-50">
+        <!-- Topo do Player -->
+        <div class="bg-white border-b border-slate-200 px-4 py-3 shrink-0">
+          <div class="max-w-5xl mx-auto flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span id="playerLevelBadge" class="px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase">Nível 1</span>
+                <div>
+                  <h2 id="playerGameTitle" class="font-extrabold text-slate-800 text-sm md:text-base leading-tight">Jogo</h2>
+                  <p id="playerModuleTitle" class="text-xs text-slate-500 font-medium">Módulo</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2.5">
+                <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl" title="Estrelas ganhas nesta sessão">
+                  <svg class="w-4 h-4 text-amber-500 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                  <span id="playerStarsCounter" class="font-black text-sm text-amber-700">0</span>
+                </div>
+                <span id="playerTrialCounter" class="mono text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg">1 / 5</span>
+                <button onclick="switchView('curriculum')" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Encerrar Módulo">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+              <div id="playerProgressBar" class="h-full bg-emerald-500 transition-all duration-300 rounded-full" style="width: 20%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Controle de Estímulo Auditivo S^D (BLINDADA CONTRA DICA VISUAL INADVERTIDA) -->
+        <div class="bg-slate-900 text-white px-4 py-2.5 shrink-0">
+          <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 font-mono text-[11px] font-bold">Sᴰ</span>
+              <p id="playerSafeInstruction" class="text-xs md:text-sm font-semibold text-slate-100">Instrução neutra para o aprendiz...</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <!-- Botão p/ Instrutor Espiar o Alvo sem mostrar ao aluno -->
+              <button onmousedown="GameEngine.peekTarget(true)" onmouseup="GameEngine.peekTarget(false)" onmouseleave="GameEngine.peekTarget(false)"
+                      ontouchstart="GameEngine.peekTarget(true)" ontouchend="GameEngine.peekTarget(false)"
+                      class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1.5 text-xs font-bold border border-slate-700 transition"
+                      title="Segure para espiar a palavra-alvo (Oculta para evitar dica visual ao aluno)">
+                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <span id="instructorPeekLabel">Segure p/ Ver Alvo</span>
+              </button>
+
+              <!-- Botão TTS (Fala a instrução e o estímulo sonoro sem exibir o texto) -->
+              <button onclick="GameEngine.speakCurrentSD()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 text-xs font-extrabold shrink-0 shadow transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                <span>Ouvir Estímulo (TTS)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PALCO DO ALUNO -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 flex items-center justify-center">
+          <div id="playerStage" class="w-full max-w-4xl bg-white rounded-3xl shadow-sm border border-slate-200 p-5 md:p-8 min-h-[320px] flex flex-col items-center justify-center relative">
+          </div>
+        </div>
+
+        <!-- BARRA DO INSTRUTOR (MOTOR DTT SILENCIOSO) -->
+        <div class="bg-white border-t border-slate-200 px-4 py-3 shrink-0 shadow-lg">
+          <div class="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              <span id="trialStateIndicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <span id="trialStateText">Modo Independente [ I ] ativo.</span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+              <!-- Caixa de Listagem do Tipo de Dica Administrada pelo Instrutor -->
+              <select id="tutorPromptType" class="h-10 px-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 focus:outline-none">
+                <option value="GESTUAL">Dica Gestual (Apontar)</option>
+                <option value="ECOICA">Dica Ecoica / Fonêmica</option>
+                <option value="MODELO">Dica de Modelo</option>
+                <option value="VERBAL">Dica Verbal</option>
+                <option value="FISICA_PARCIAL">Dica Física Parcial</option>
+                <option value="FISICA_TOTAL">Dica Física Total</option>
+              </select>
+
+              <!-- Botão Dar Dica (Apenas muda o estado interno para D, sem alterar nada visual no palco!) -->
+              <button onclick="GameEngine.armInstructorPrompt()" id="btnTutorD" class="h-10 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm" title="Marca que você deu dica presencial. Se o aluno acertar a seguir, computa [D]. Se errar, computa [N] automático.">
+                <span class="mono bg-black/20 px-1.5 py-0.5 rounded">[ D ]</span>
+                <span id="btnTutorDLabel">Dar Dica</span>
+              </button>
+
+              <!-- Botões de Registro Manual Direto do Instrutor -->
+              <button onclick="GameEngine.recordTrial('I')" class="h-10 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm">
+                <span class="mono bg-black/20 px-1.5 py-0.5 rounded">[ I ]</span>
+                <span>Indep.</span>
+              </button>
+
+              <button onclick="GameEngine.recordTrial('N')" class="h-10 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm">
+                <span class="mono bg-black/20 px-1.5 py-0.5 rounded">[ N ]</span>
+                <span>Erro</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 3: DASHBOARD INTELIGENTE POR DATA E GAMIFICAÇÃO
+           ========================================== -->
+      <section id="view-dashboard" class="hidden p-4 md:p-6 max-w-7xl mx-auto space-y-6 pb-14">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="dashboardKPIs"></div>
+        <div id="retentionActionBanner" class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"></div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 class="font-extrabold text-slate-800 text-base">Matriz Longitudinal de Retenção Diária</h3>
+              <p class="text-xs text-slate-500">Cada nível obedece ao critério de % e quantidade de dias parametrizado pelo instrutor nas Configurações.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 text-xs font-bold">
+              <span class="flex items-center gap-1 text-emerald-700"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Dominado</span>
+              <span class="flex items-center gap-1 text-amber-700"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Em Validação Entre Dias</span>
+              <span class="flex items-center gap-1 text-rose-700"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Abaixo do Critério</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold uppercase text-slate-500" id="matrixTableHead"></tr>
+              </thead>
+              <tbody id="matrixTableBody" class="divide-y divide-slate-100 text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 4: CONSTRUTOR VISUAL DE MÓDULOS E ITENS (ZERO JSON!)
+           ========================================== -->
+      <section id="view-editor" class="hidden p-4 md:p-6 max-w-7xl mx-auto space-y-6 pb-14">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-extrabold text-lg text-slate-800">Construtor Visual de Módulos e Tentativas</h2>
+            <p class="text-xs text-slate-500">Adicione, edite ou exclua módulos e tentativas usando formulários amigáveis adaptados a cada mecânica de jogo.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="CurriculumManager.openModuleTitleModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+              <span>Criar Novo Módulo</span>
+            </button>
+            <button onclick="CurriculumManager.resetFactory()" class="px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold">
+              Restaurar Currículo Padrão
+            </button>
+          </div>
+        </div>
+
+        <!-- Seleção da Tarefa (1 a 25) -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div>
+              <label class="text-[11px] font-extrabold uppercase text-slate-400 block">Tarefa / Mini-Game Selecionado</label>
+              <p class="text-xs text-slate-500">Escolha o jogo para gerenciar seus módulos e itens visuais:</p>
+            </div>
+            <select id="editorGameSelect" onchange="CurriculumManager.renderEditorForGame(this.value)" class="px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-xs md:text-sm font-extrabold text-slate-800 focus:outline-none"></select>
+          </div>
+
+          <div id="editorModulesContainer" class="space-y-5"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =========================================================
+       MODAIS DO SISTEMA (TODOS COM SAÍDA E FECHAMENTO EXTERNO)
+       ========================================================= -->
+
+  <!-- MODAL 1: GERENCIADOR COMPLETO DE APRENDIZES (CRIAR, EDITAR, EXCLUIR, PONTOS) -->
+  <div id="modalStudents" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) UI.closeModal('modalStudents')">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] flex flex-col">
+      <div class="flex items-center justify-between shrink-0">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-800">Gerenciar Aprendizes & Pontuação</h3>
+          <p class="text-xs text-slate-500">Cadastre, edite dados, acompanhe as estrelas acumuladas ou remova registros.</p>
+        </div>
+        <button onclick="UI.closeModal('modalStudents')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Formulário de Adição / Edição de Aprendiz -->
+      <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3 shrink-0">
+        <input type="hidden" id="stuFormEditingId" value="" />
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div class="sm:col-span-2">
+            <label class="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Nome do Aprendiz</label>
+            <input type="text" id="stuFormName" placeholder="Ex: Gabriel Santos" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-[10px] font-extrabold uppercase text-slate-400 block mb-1">Turma / Série</label>
+            <input type="text" id="stuFormGrade" placeholder="Ex: 3º Ano B" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none" />
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center gap-2">
+            <label class="text-[10px] font-extrabold uppercase text-slate-400">Estrelas Acumuladas:</label>
+            <input type="number" id="stuFormPoints" value="0" min="0" class="w-20 px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-black text-amber-700" />
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="AppState.resetStudentForm()" id="stuFormCancelEditBtn" class="hidden px-3 py-1.5 rounded-xl bg-slate-200 text-slate-700 text-xs font-bold">Cancelar Edição</button>
+            <button onclick="AppState.saveStudentForm()" id="stuFormSubmitBtn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs">
+              Salvar Aprendiz
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Aprendizes -->
+      <div id="studentsListModal" class="divide-y divide-slate-100 overflow-y-auto flex-1 pr-1"></div>
+
+      <div class="flex justify-end shrink-0 pt-2 border-t border-slate-100">
+        <button onclick="UI.closeModal('modalStudents')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Cancelar / Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CONFIGURAÇÕES (CRITÉRIOS DE MAESTRIA DIFERENTES PARA OS 4 NÍVEIS) -->
+  <div id="modalSettings" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) UI.closeModal('modalSettings')">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-800">Configurações de Critério ABA & Gamificação</h3>
+          <p class="text-xs text-slate-500">Defina a porcentagem mínima de acerto independente [ I ] e a quantidade de dias distintos para cada Nível.</p>
+        </div>
+        <button onclick="UI.closeModal('modalSettings')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Critérios por Nível (1 a 4) -->
+      <div class="space-y-3" id="settingsLevelsContainer"></div>
+
+      <!-- Configuração de Recompensa de Pontos/Estrelas -->
+      <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
+        <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-900">Pontuação de Gamificação por Tentativa</h4>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Estrelas por Acerto Independente [ I ]:</label>
+            <input type="number" id="setStarsI" min="1" max="20" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-black" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">Estrelas por Acerto com Dica [ D ]:</label>
+            <input type="number" id="setStarsD" min="0" max="20" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-black" />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="UI.closeModal('modalSettings')" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Cancelar</button>
+        <button onclick="AppState.saveSettingsFromModal()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs">Salvar Configurações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: SINCRONIZAÇÃO INTELIGENTE DE PACOTES (CLOUD PACKS) -->
+  <div id="modalSync" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) UI.closeModal('modalSync')">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-800">Sincronização de Pacotes Curriculares (Nuvem)</h3>
+          <p class="text-xs text-slate-500">Busque os pacotes lançados na Planilha Google e escolha qual pacote vincular ao aprendiz ativo.</p>
+        </div>
+        <button onclick="UI.closeModal('modalSync')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Passo 1: Endpoint GAS -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-slate-700 block">1. URL do Web App (Google Apps Script da Planilha):</label>
+        <div class="flex gap-2">
+          <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:outline-none focus:border-indigo-500" />
+          <button onclick="CloudPackSync.fetchAvailablePacks()" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs shrink-0 flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <span>Localizar Pacotes</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Passo 2: Caixa de Listagem de Pacotes Disponíveis -->
+      <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-extrabold text-slate-700">2. Selecione o Pacote de Questões Disponível:</label>
+          <span id="packTargetStudentLabel" class="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded"></span>
+        </div>
+
+        <select id="cloudPacksSelect" onchange="CloudPackSync.previewSelectedPack(this.value)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-xs md:text-sm font-bold text-slate-800 focus:outline-none"></select>
+
+        <div id="cloudPackPreviewBox" class="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 space-y-1"></div>
+
+        <div class="flex items-center gap-2 pt-1">
+          <input type="checkbox" id="applyPackOnlyToStudent" checked class="w-4 h-4 rounded text-indigo-600" />
+          <label for="applyPackOnlyToStudent" class="text-xs font-semibold text-slate-700">Vincular este pacote especificamente ao aprendiz selecionado</label>
+        </div>
+      </div>
+
+      <div id="syncFeedbackMsg" class="text-xs font-bold hidden p-3 rounded-xl"></div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button onclick="UI.closeModal('modalSync')" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Cancelar</button>
+        <button onclick="CloudPackSync.applySelectedPack()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs">
+          Sincronizar Pacote Selecionado
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: CRIAR / RENOMEAR MÓDULO (SEM JSON) -->
+  <div id="modalModuleMeta" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) UI.closeModal('modalModuleMeta')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="moduleMetaModalTitle" class="font-extrabold text-base text-slate-800">Novo Módulo</h3>
+        <button onclick="UI.closeModal('modalModuleMeta')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div>
+        <label class="text-xs font-bold text-slate-600 block mb-1">Nome do Módulo (Bloco de Tentativas):</label>
+        <input type="text" id="moduleMetaTitleInput" placeholder="Ex: Módulo 2: Palavras Trissílabas" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none" />
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="UI.closeModal('modalModuleMeta')" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancelar</button>
+        <button onclick="CurriculumManager.saveModuleMeta()" class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-extrabold text-xs">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: EDITOR VISUAL DE TENTATIVA / ITEM (100% FORMULÁRIO AMIGÁVEL, ZERO JSON) -->
+  <div id="modalVisualItemEditor" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) UI.closeModal('modalVisualItemEditor')">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="visualItemModalTitle" class="font-extrabold text-base text-slate-800">Adicionar Tentativa</h3>
+          <p id="visualItemMechanicSubtitle" class="text-xs text-slate-500"></p>
+        </div>
+        <button onclick="UI.closeModal('modalVisualItemEditor')" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Campos dinâmicos gerados conforme a mecânica do jogo -->
+      <div id="visualItemFormFields" class="space-y-3"></div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+        <button onclick="UI.closeModal('modalVisualItemEditor')" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">Cancelar</button>
+        <button onclick="CurriculumManager.saveVisualItem()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs">Salvar Tentativa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: CELEBRAÇÃO DE FIM DE MÓDULO + GAMIFICAÇÃO -->
+  <div id="modalCelebration" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) UI.closeModal('modalCelebration')">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border border-slate-100 relative overflow-hidden">
+      <div class="w-20 h-20 rounded-full bg-amber-100 mx-auto flex items-center justify-center mb-3">
+        <svg class="w-12 h-12 text-amber-500 fill-current star-pop" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+      </div>
+      <h3 class="text-2xl font-black text-slate-800">Módulo Concluído!</h3>
+      <p id="celebPointsEarnedBadge" class="inline-block mt-1 px-3 py-0.5 rounded-full bg-amber-100 text-amber-800 font-black text-xs">+0 Estrelas Acumuladas</p>
+
+      <div class="grid grid-cols-3 gap-2 my-4 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+        <div>
+          <span class="text-[10px] font-bold uppercase text-slate-400 block">Indep. [I]</span>
+          <span id="celebCountI" class="text-lg font-black text-emerald-600">0</span>
+        </div>
+        <div>
+          <span class="text-[10px] font-bold uppercase text-slate-400 block">Com Dica [D]</span>
+          <span id="celebCountD" class="text-lg font-black text-amber-500">0</span>
+        </div>
+        <div>
+          <span class="text-[10px] font-bold uppercase text-slate-400 block">Erros [N]</span>
+          <span id="celebCountN" class="text-lg font-black text-rose-600">0</span>
+        </div>
+      </div>
+
+      <div id="celebMasteryBox" class="p-3 rounded-xl text-xs font-bold mb-5"></div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="UI.closeModal('modalCelebration'); switchView('curriculum');" class="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs">
+          Catálogo
+        </button>
+        <button onclick="UI.closeModal('modalCelebration'); GameEngine.restartCurrentModule();" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs">
+          Repetir Módulo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       PONTE NATIVA KODULAR & PWA HARDWARE BRIDGE
+       ========================================================================= */
+    function enviarKodular(comando) {
+      if (window.AppInventor && window.AppInventor.setWebViewString) {
+        window.AppInventor.setWebViewString(comando);
+      }
+    }
+
+    window.receberTextoDoKodular = function(texto) {
+      if (!texto) return;
+      if (GameEngine.isRunning && GameEngine.currentGame) {
+        GameEngine.handleVoiceInput(texto.trim().toUpperCase());
+      }
+    };
+
+    window.handleAndroidBack = function() {
+      const modals = ['modalCelebration', 'modalVisualItemEditor', 'modalModuleMeta', 'modalSync', 'modalSettings', 'modalStudents'];
+      for (const id of modals) {
+        const el = document.getElementById(id);
+        if (el && !el.classList.contains('hidden')) {
+          UI.closeModal(id);
+          return;
+        }
+      }
+      if (AppState.currentView !== 'curriculum') {
+        switchView('curriculum');
+        return;
+      }
+      enviarKodular('VOLTAR_MENU');
+    };
+
+    /* Sintetizador de Áudio & TTS */
+    const SoundFX = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+      },
+      tone(freq = 440, duration = 0.12, type = 'sine') {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      },
+      success() {
+        this.tone(587.33, 0.1, 'triangle');
+        setTimeout(() => this.tone(880, 0.18, 'triangle'), 90);
+      },
+      subtleError() {
+        this.tone(190, 0.16, 'sine');
+      },
+      drum() {
+        this.tone(140, 0.09, 'triangle');
+      },
+      fanfare() {
+        [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+          setTimeout(() => this.tone(f, 0.16, 'triangle'), idx * 110);
+        });
+      },
+      speak(text) {
+        if (!text) return;
+        enviarKodular('FALAR:' + text);
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'pt-BR';
+          u.rate = 0.92;
+          window.speechSynthesis.speak(u);
+        }
+      }
+    };
+
+    /* =========================================================================
+       1. BANCO CURRICULAR PADRÃO (25 JOGOS) - BLINDADO CONTRA DICA INADVERTIDA
+       =========================================================================
+       Nota Metodológica ABA:
+       - `safeInstruction`: Texto exibido na tela (nunca revela a resposta-alvo).
+       - `ttsPrompt`: Áudio falado pelo TTS quando o instrutor ou aluno toca em "Ouvir Estímulo".
+    */
+    const DEFAULT_CURRICULUM_DB = [
+      {
+        level: 1,
+        name: "Nível 1: Pré-Leitor e Emergente",
+        subtitle: "Fundação Visual, Consciência Fonológica Macro e Sons Contínuos",
+        theme: { bg: "bg-emerald-700", badge: "bg-emerald-100 text-emerald-800" },
+        games: [
+          {
+            id: "g1_caca_simbolos",
+            number: 1,
+            code: "1.1.2",
+            title: "Caça-Símbolos",
+            competency: "Discriminação Letra vs. Número/Símbolo",
+            mechanic: "choice",
+            modules: [
+              {
+                id: "m1_g1",
+                title: "Módulo 1: Vogais vs. Números",
+                items: [
+                  { safeInstruction: "Toque apenas no cartão que tem uma LETRA!", ttsPrompt: "Toque apenas na letra!", target: "A", options: ["4", "A", "8"] },
+                  { safeInstruction: "Toque apenas no cartão que tem uma LETRA!", ttsPrompt: "Toque apenas na letra!", target: "E", options: ["7", "2", "E"] },
+                  { safeInstruction: "Toque apenas no cartão que tem uma LETRA!", ttsPrompt: "Toque apenas na letra!", target: "O", options: ["O", "9", "5"] },
+                  { safeInstruction: "Toque apenas no cartão que tem uma LETRA!", ttsPrompt: "Toque apenas na letra!", target: "I", options: ["3", "I", "6"] },
+                  { safeInstruction: "Toque apenas no cartão que tem uma LETRA!", ttsPrompt: "Toque apenas na letra!", target: "U", options: ["1", "8", "U"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g2_detetive_espelho",
+            number: 2,
+            code: "1.1.3",
+            title: "Detetive do Espelho",
+            competency: "Orientação Espacial de Grafemas (b/d/p/q)",
+            mechanic: "mirror_match",
+            modules: [
+              {
+                id: "m1_g2",
+                title: "Módulo 1: Pares Críticos b / d / p / q",
+                items: [
+                  { safeInstruction: "Ache a letra que está na mesma posição do modelo!", ttsPrompt: "Ache a letra igualzinha ao modelo!", model: "q", target: "q", options: ["p", "d", "q"] },
+                  { safeInstruction: "Ache a letra que está na mesma posição do modelo!", ttsPrompt: "Ache a letra igualzinha ao modelo!", model: "b", target: "b", options: ["d", "b", "p"] },
+                  { safeInstruction: "Ache a letra que está na mesma posição do modelo!", ttsPrompt: "Ache a letra igualzinha ao modelo!", model: "d", target: "d", options: ["b", "q", "d"] },
+                  { safeInstruction: "Ache a letra que está na mesma posição do modelo!", ttsPrompt: "Ache a letra igualzinha ao modelo!", model: "p", target: "p", options: ["p", "q", "b"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g3_trem_leitura",
+            number: 3,
+            code: "1.1.1",
+            title: "Trem da Leitura",
+            competency: "Rastreio Visual Esquerda -> Direita",
+            mechanic: "reading_track",
+            modules: [
+              {
+                id: "m1_g3",
+                title: "Módulo 1: Varredura Horizontal",
+                items: [
+                  { safeInstruction: "Deslize o dedo mostrando por onde começamos a ler!", ttsPrompt: "Mostre por onde começamos a ler!", text: "O PATO NADA." },
+                  { safeInstruction: "Deslize o dedo da esquerda para a direita!", ttsPrompt: "Deslize o dedo acompanhando a leitura!", text: "A BOLA ROLA." },
+                  { safeInstruction: "Acompanhe o trilho da leitura até o fim!", ttsPrompt: "Acompanhe o trilho da leitura!", text: "O GATO DORME." }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g4_cacador_rimas",
+            number: 4,
+            code: "1.2.1",
+            title: "Caçador de Rimas",
+            competency: "Consciência Fonológica - Som Final",
+            mechanic: "audio_choice",
+            modules: [
+              {
+                id: "m1_g4",
+                title: "Módulo 1: Rimas Receptivas (Sem Dica Visual)",
+                items: [
+                  { safeInstruction: "Ouça a palavra e toque na opção que TERMINA com o mesmo som!", ttsPrompt: "Qual termina com o mesmo som de MÃO?", target: "PÃO", options: ["PÉ", "PÃO", "BOLA"] },
+                  { safeInstruction: "Ouça a palavra e toque na opção que TERMINA com o mesmo som!", ttsPrompt: "Qual termina com o mesmo som de GATO?", target: "PATO", options: ["PATO", "FACA", "LUA"] },
+                  { safeInstruction: "Ouça a palavra e toque na opção que TERMINA com o mesmo som!", ttsPrompt: "Qual termina com o mesmo som de MOLA?", target: "BOLA", options: ["CASA", "BOLA", "REDE"] },
+                  { safeInstruction: "Ouça a palavra e toque na opção que TERMINA com o mesmo som!", ttsPrompt: "Qual termina com o mesmo som de JANELA?", target: "PANELA", options: ["PANELA", "SAPATO", "COPO"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g5_som_gemeo",
+            number: 5,
+            code: "1.2.2",
+            title: "Som Gêmeo (Aliteração)",
+            competency: "Consciência Fonológica - Som Inicial (Sem Sílaba Destacada)",
+            mechanic: "audio_choice",
+            modules: [
+              {
+                id: "m1_g5",
+                title: "Módulo 1: Mesmo Som Inicial (Estímulo Auditivo)",
+                items: [
+                  { safeInstruction: "Ouça a palavra e toque na que COMEÇA com o mesmo som!", ttsPrompt: "Qual começa com o mesmo pedacinho de BOLO?", target: "BOTA", options: ["BOTA", "MACACO", "SAPATO"] },
+                  { safeInstruction: "Ouça a palavra e toque na que COMEÇA com o mesmo som!", ttsPrompt: "Qual começa com o mesmo pedacinho de MALA?", target: "MACACO", options: ["PANELA", "MACACO", "CAVALO"] },
+                  { safeInstruction: "Ouça a palavra e toque na que COMEÇA com o mesmo som!", ttsPrompt: "Qual começa com o mesmo pedacinho de SAPO?", target: "SACOLA", options: ["SACOLA", "BONECA", "JANELA"] },
+                  { safeInstruction: "Ouça a palavra e toque na que COMEÇA com o mesmo som!", ttsPrompt: "Qual começa com o mesmo pedacinho de PIPOCA?", target: "PIRULITO", options: ["TOMATE", "PIRULITO", "GIRAFA"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g6_tambor_silabas",
+            number: 6,
+            code: "1.2.3",
+            title: "Tambor das Sílabas",
+            competency: "Segmentação Silábica Motora sob Estímulo Auditivo",
+            mechanic: "syllable_drum",
+            modules: [
+              {
+                id: "m1_g6",
+                title: "Módulo 1: Contagem de 1 a 4 Sílabas (Sem Texto Escrito)",
+                items: [
+                  { safeInstruction: "Ouça a palavra e bata nos tambores para cada sílaba!", ttsPrompt: "MACACO", targetWordHidden: "MACACO", targetCount: 3 },
+                  { safeInstruction: "Ouça a palavra e bata nos tambores para cada sílaba!", ttsPrompt: "BOLA", targetWordHidden: "BOLA", targetCount: 2 },
+                  { safeInstruction: "Ouça a palavra e bata nos tambores para cada sílaba!", ttsPrompt: "SOL", targetWordHidden: "SOL", targetCount: 1 },
+                  { safeInstruction: "Ouça a palavra e bata nos tambores para cada sílaba!", ttsPrompt: "BORBOLETA", targetWordHidden: "BORBOLETA", targetCount: 4 }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g7_microfone_vogais",
+            number: 7,
+            code: "1.3.1",
+            title: "Microfone das Vogais",
+            competency: "Nomeação Rápida de Vogais (< 3s)",
+            mechanic: "voice_grapheme",
+            modules: [
+              {
+                id: "m1_g7",
+                title: "Módulo 1: Vogais Orais e ÃO",
+                items: [
+                  { safeInstruction: "Que som faz esta letra?", ttsPrompt: "Que som faz esta letra?", grapheme: "A", phoneticHidden: "/a/" },
+                  { safeInstruction: "Que som faz esta letra?", ttsPrompt: "Que som faz esta letra?", grapheme: "E", phoneticHidden: "/e/" },
+                  { safeInstruction: "Que som faz esta letra?", ttsPrompt: "Que som faz esta letra?", grapheme: "I", phoneticHidden: "/i/" },
+                  { safeInstruction: "Que som faz esta letra?", ttsPrompt: "Que som faz esta letra?", grapheme: "O", phoneticHidden: "/o/" },
+                  { safeInstruction: "Que som faz esta letra?", ttsPrompt: "Que som faz esta letra?", grapheme: "U", phoneticHidden: "/u/" },
+                  { safeInstruction: "Que som faz este encontro?", ttsPrompt: "Que som faz este pedacinho?", grapheme: "ÃO", phoneticHidden: "/ãw/" }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g8_sopro_zumbido",
+            number: 8,
+            code: "1.3.2",
+            title: "Sopro e Zumbido",
+            competency: "Consoantes Contínuas (F, V, M, N, S, Z, L)",
+            mechanic: "audio_choice",
+            modules: [
+              {
+                id: "m1_g8",
+                title: "Módulo 1: Discriminação Fônica Auditiva (Sem Letra no Topo)",
+                items: [
+                  { safeInstruction: "Ouça o som emitido pelo instrutor e toque na letra correspondente!", ttsPrompt: "Som de sopro: ffffff", target: "F", options: ["M", "F", "Z"] },
+                  { safeInstruction: "Ouça o som emitido pelo instrutor e toque na letra correspondente!", ttsPrompt: "Som de zumbido: zzzzzz", target: "Z", options: ["Z", "L", "N"] },
+                  { safeInstruction: "Ouça o som emitido pelo instrutor e toque na letra correspondente!", ttsPrompt: "Som da cobrinha: ssssss", target: "S", options: ["V", "S", "M"] },
+                  { safeInstruction: "Ouça o som emitido pelo instrutor e toque na letra correspondente!", ttsPrompt: "Som nasal: mmmmmm", target: "M", options: ["M", "F", "L"] },
+                  { safeInstruction: "Ouça o som emitido pelo instrutor e toque na letra correspondente!", ttsPrompt: "Som contínuo: llllll", target: "L", options: ["S", "Z", "L"] }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        level: 2,
+        name: "Nível 2: Leitor Inicial",
+        subtitle: "Fronteira Lexical, Oclusivas, Fusão Silábica CV e Escrita CVCV",
+        theme: { bg: "bg-amber-600", badge: "bg-amber-100 text-amber-900" },
+        games: [
+          {
+            id: "g9_fatiador_frases",
+            number: 9,
+            code: "2.1.1",
+            title: "Fatiador de Frases",
+            competency: "Segmentação Lexical (Espaços entre Palavras)",
+            mechanic: "sentence_slicer",
+            modules: [
+              {
+                id: "m1_g9",
+                title: "Módulo 1: Frases de 3 Palavras",
+                items: [
+                  { safeInstruction: "Toque exatamente onde devemos separar as palavras!", ttsPrompt: "O sapo pula", words: ["O", "SAPO", "PULA"] },
+                  { safeInstruction: "Toque exatamente onde devemos separar as palavras!", ttsPrompt: "A bola cai", words: ["A", "BOLA", "CAI"] },
+                  { safeInstruction: "Toque exatamente onde devemos separar as palavras!", ttsPrompt: "O pato nada", words: ["O", "PATO", "NADA"] }
+                ]
+              },
+              {
+                id: "m2_g9",
+                title: "Módulo 2: Frases de 5 Palavras",
+                items: [
+                  { safeInstruction: "Separe todas as palavras desta frase!", ttsPrompt: "O gato bota o ovo", words: ["O", "GATO", "BOTA", "O", "OVO"] },
+                  { safeInstruction: "Separe todas as palavras desta frase!", ttsPrompt: "A vaca bebe a água", words: ["A", "VACA", "BEBE", "A", "ÁGUA"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g10_contador_palavras",
+            number: 10,
+            code: "2.1.2",
+            title: "Contador de Palavras",
+            competency: "Contagem Auditiva de Vocábulos (Sem Frase Escrita)",
+            mechanic: "word_counter",
+            modules: [
+              {
+                id: "m1_g10",
+                title: "Módulo 1: Contagem Auditiva Pura",
+                items: [
+                  { safeInstruction: "Ouça a frase falada e toque na quantidade de palavras!", ttsPrompt: "O gato bota o ovo", target: 5 },
+                  { safeInstruction: "Ouça a frase falada e toque na quantidade de palavras!", ttsPrompt: "Sapo pula alto", target: 3 },
+                  { safeInstruction: "Ouça a frase falada e toque na quantidade de palavras!", ttsPrompt: "A menina come bolo", target: 4 }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g11_explosao_fonica",
+            number: 11,
+            code: "2.2.1",
+            title: "Explosão Fônica",
+            competency: "Consoantes Oclusivas (P, B, T, D, C, G)",
+            mechanic: "voice_grapheme",
+            modules: [
+              {
+                id: "m1_g11",
+                title: "Módulo 1: Emissão Explosiva Pura",
+                items: [
+                  { safeInstruction: "Faça o som de explosão desta letra!", ttsPrompt: "Que som faz esta letra?", grapheme: "P", phoneticHidden: "/p/" },
+                  { safeInstruction: "Faça o som de explosão desta letra!", ttsPrompt: "Que som faz esta letra?", grapheme: "B", phoneticHidden: "/b/" },
+                  { safeInstruction: "Faça o som de explosão desta letra!", ttsPrompt: "Que som faz esta letra?", grapheme: "T", phoneticHidden: "/t/" },
+                  { safeInstruction: "Faça o som de explosão desta letra!", ttsPrompt: "Que som faz esta letra?", grapheme: "D", phoneticHidden: "/d/" },
+                  { safeInstruction: "Faça o som de explosão desta letra!", ttsPrompt: "Que som faz esta letra?", grapheme: "C", phoneticHidden: "/k/" },
+                  { safeInstruction: "Faça o som de explosão desta letra!", ttsPrompt: "Que som faz esta letra?", grapheme: "G", phoneticHidden: "/g/" }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g12_fusao_magica",
+            number: 12,
+            code: "2.2.2",
+            title: "Fusão Mágica (CV)",
+            competency: "Fusão Silábica Simples sem Pausa Intra-silábica",
+            mechanic: "cv_fusion",
+            modules: [
+              {
+                id: "m1_g12",
+                title: "Módulo 1: Sílabas Diretas CV",
+                items: [
+                  { safeInstruction: "Una os dois sons e leia a sílaba num sopro só!", ttsPrompt: "Junte os sons e leia de uma vez!", c: "M", v: "A", target: "MA" },
+                  { safeInstruction: "Una os dois sons e leia a sílaba num sopro só!", ttsPrompt: "Junte os sons e leia de uma vez!", c: "P", v: "O", target: "PO" },
+                  { safeInstruction: "Una os dois sons e leia a sílaba num sopro só!", ttsPrompt: "Junte os sons e leia de uma vez!", c: "B", v: "O", target: "BO" },
+                  { safeInstruction: "Una os dois sons e leia a sílaba num sopro só!", ttsPrompt: "Junte os sons e leia de uma vez!", c: "T", v: "U", target: "TU" }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g13_construtor_bloquinhos",
+            number: 13,
+            code: "2.2.3",
+            title: "Construtor de Bloquinhos",
+            competency: "Montagem de Palavras CVCV sob Ditado (Sem Palavra Escrita)",
+            mechanic: "syllable_builder",
+            modules: [
+              {
+                id: "m1_g13",
+                title: "Módulo 1: Montagem Auditivo-Silábica CVCV",
+                items: [
+                  { safeInstruction: "Ouça a palavra e toque nas sílabas na ordem certa!", ttsPrompt: "BOLO", targetSyllables: ["BO", "LO"], pool: ["LO", "PA", "BO"] },
+                  { safeInstruction: "Ouça a palavra e toque nas sílabas na ordem certa!", ttsPrompt: "SAPO", targetSyllables: ["SA", "PO"], pool: ["PO", "SA", "LA"] },
+                  { safeInstruction: "Ouça a palavra e toque nas sílabas na ordem certa!", ttsPrompt: "PIPOCA", targetSyllables: ["PI", "PO", "CA"], pool: ["CA", "PI", "BO", "PO"] },
+                  { safeInstruction: "Ouça a palavra e toque nas sílabas na ordem certa!", ttsPrompt: "BONECA", targetSyllables: ["BO", "NE", "CA"], pool: ["NE", "BO", "TU", "CA"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g14_copista_virtual",
+            number: 14,
+            code: "2.3.1",
+            title: "Copista Virtual",
+            competency: "Transcrição / Cópia com Modelo Visível",
+            mechanic: "keyboard_spell",
+            modules: [
+              {
+                id: "m1_g14",
+                title: "Módulo 1: Cópia Direta de Vocábulos CVCV",
+                items: [
+                  { safeInstruction: "Copie a palavra do cartão-modelo respeitando a ordem!", ttsPrompt: "Copie a palavra DADO", modelVisible: true, target: "DADO", keys: ["D", "A", "O", "P", "E"] },
+                  { safeInstruction: "Copie a palavra do cartão-modelo respeitando a ordem!", ttsPrompt: "Copie a palavra PATO", modelVisible: true, target: "PATO", keys: ["P", "A", "T", "O", "M"] },
+                  { safeInstruction: "Copie a palavra do cartão-modelo respeitando a ordem!", ttsPrompt: "Copie a palavra BOLA", modelVisible: true, target: "BOLA", keys: ["B", "O", "L", "A", "U"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g15_ditado_cvcv",
+            number: 15,
+            code: "2.3.2",
+            title: "Ditado CVCV",
+            competency: "Escrita Fonética sob Ditado (Palavra Oculta!)",
+            mechanic: "keyboard_spell",
+            modules: [
+              {
+                id: "m1_g15",
+                title: "Módulo 1: Ditado Auditivo Sem Pista Gráfica",
+                items: [
+                  { safeInstruction: "Ouça a palavra ditada e digite cada letra na ordem correta!", ttsPrompt: "SAPO", modelVisible: false, target: "SAPO", keys: ["S", "A", "P", "O", "L", "E"] },
+                  { safeInstruction: "Ouça a palavra ditada e digite cada letra na ordem correta!", ttsPrompt: "VACA", modelVisible: false, target: "VACA", keys: ["V", "A", "C", "O", "F", "I"] },
+                  { safeInstruction: "Ouça a palavra ditada e digite cada letra na ordem correta!", ttsPrompt: "MALA", modelVisible: false, target: "MALA", keys: ["M", "A", "L", "O", "N", "U"] }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        level: 3,
+        name: "Nível 3: Leitor Intermediário",
+        subtitle: "Sílabas Travadas CVC, Encontros CCV, Dígrafos, Pares Mínimos e Fluência",
+        theme: { bg: "bg-orange-700", badge: "bg-orange-100 text-orange-900" },
+        games: [
+          {
+            id: "g16_caca_fantasmas",
+            number: 16,
+            code: "3.1.1",
+            title: "Caça-Fantasmas (CVC)",
+            competency: "Sílabas Fechadas sem Epêntese Vocálica",
+            mechanic: "audio_choice",
+            modules: [
+              {
+                id: "m1_g16",
+                title: "Módulo 1: Discriminação Ortográfica CVC",
+                items: [
+                  { safeInstruction: "Toque na palavra escrita corretamente, sem vogal intrusa!", ttsPrompt: "BARCO", target: "BARCO", options: ["BARCO", "BARICO"] },
+                  { safeInstruction: "Toque na palavra escrita corretamente, sem vogal intrusa!", ttsPrompt: "PASTA", target: "PASTA", options: ["PASITA", "PASTA"] },
+                  { safeInstruction: "Toque na palavra escrita corretamente, sem vogal intrusa!", ttsPrompt: "PORTA", target: "PORTA", options: ["PORTA", "PORITA"] },
+                  { safeInstruction: "Toque na palavra escrita corretamente, sem vogal intrusa!", ttsPrompt: "BALDE", target: "BALDE", options: ["BALIDE", "BALDE"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g17_intrometido_ccv",
+            number: 17,
+            code: "3.1.2",
+            title: "O Intrometido (CCV)",
+            competency: "Encontros Consonantais com R e L",
+            mechanic: "ccv_fusion",
+            modules: [
+              {
+                id: "m1_g17",
+                title: "Módulo 1: Ataques Complexos PR, BR, CL, FL",
+                items: [
+                  { safeInstruction: "Leia a sílaba complexa e a palavra sem separar as consoantes!", ttsPrompt: "Leia a palavra na tela", parts: ["P", "R", "A"], syllable: "PRA", word: "PRATO" },
+                  { safeInstruction: "Leia a sílaba complexa e a palavra sem separar as consoantes!", ttsPrompt: "Leia a palavra na tela", parts: ["B", "R", "U"], syllable: "BRU", word: "BRUXA" },
+                  { safeInstruction: "Leia a sílaba complexa e a palavra sem separar as consoantes!", ttsPrompt: "Leia a palavra na tela", parts: ["C", "L", "I"], syllable: "CLI", word: "CLIMA" },
+                  { safeInstruction: "Leia a sílaba complexa e a palavra sem separar as consoantes!", ttsPrompt: "Leia a palavra na tela", parts: ["F", "L", "O"], syllable: "FLO", word: "FLORESTA" }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g18_trio_inseparavel",
+            number: 18,
+            code: "3.1.3",
+            title: "O Trio Inseparável",
+            competency: "Dígrafos Inseparáveis (NH, LH, CH)",
+            mechanic: "gap_fill",
+            modules: [
+              {
+                id: "m1_g18",
+                title: "Módulo 1: Completar com NH, LH e CH",
+                items: [
+                  { safeInstruction: "Ouça a palavra e complete com o bloco correto!", ttsPrompt: "NINHO", stem: "NI - ___", target: "NHO", options: ["NHO", "LHO", "CHO"] },
+                  { safeInstruction: "Ouça a palavra e complete com o bloco correto!", ttsPrompt: "COELHO", stem: "COE - ___", target: "LHO", options: ["NHO", "LHO", "CHO"] },
+                  { safeInstruction: "Ouça a palavra e complete com o bloco correto!", ttsPrompt: "CHAVE", stem: "___ - VE", target: "CHA", options: ["NHA", "LHA", "CHA"] },
+                  { safeInstruction: "Ouça a palavra e complete com o bloco correto!", ttsPrompt: "MILHO", stem: "MI - ___", target: "LHO", options: ["LHO", "NHO", "CHO"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g19_balanca_sons",
+            number: 19,
+            code: "3.2.1",
+            title: "Balança de Sons",
+            competency: "Pares Mínimos Surda/Sonora (Sem Palavra Escrita no Topo!)",
+            mechanic: "audio_choice",
+            modules: [
+              {
+                id: "m1_g19",
+                title: "Módulo 1: Ditado de Pares Mínimos F/V, P/B, T/D, C/G",
+                items: [
+                  { safeInstruction: "Ouça a palavra ditada e toque no cartão correspondente!", ttsPrompt: "VACA", target: "VACA", options: ["FACA", "VACA"] },
+                  { safeInstruction: "Ouça a palavra ditada e toque no cartão correspondente!", ttsPrompt: "PATO", target: "PATO", options: ["PATO", "BATO"] },
+                  { safeInstruction: "Ouça a palavra ditada e toque no cartão correspondente!", ttsPrompt: "DEDO", target: "DEDO", options: ["TETO", "DEDO"] },
+                  { safeInstruction: "Ouça a palavra ditada e toque no cartão correspondente!", ttsPrompt: "COLA", target: "COLA", options: ["COLA", "GOLA"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g20_corrida_lexical",
+            number: 20,
+            code: "3.3.1",
+            title: "Corrida Lexical (< 3s)",
+            competency: "Velocidade de Acesso Lexical sem Soletração",
+            mechanic: "speed_flashcard",
+            modules: [
+              {
+                id: "m1_g20",
+                title: "Módulo 1: Bateria Mista CV, CVC e CCV",
+                items: [
+                  { safeInstruction: "Leia a palavra em voz alta antes do tempo acabar!", ttsPrompt: "Leia rápido", word: "FLORESTA", timeLimit: 3 },
+                  { safeInstruction: "Leia a palavra em voz alta antes do tempo acabar!", ttsPrompt: "Leia rápido", word: "BARCO", timeLimit: 3 },
+                  { safeInstruction: "Leia a palavra em voz alta antes do tempo acabar!", ttsPrompt: "Leia rápido", word: "CHINELO", timeLimit: 3 },
+                  { safeInstruction: "Leia a palavra em voz alta antes do tempo acabar!", ttsPrompt: "Leia rápido", word: "PRATO", timeLimit: 3 }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        level: 4,
+        name: "Nível 4: Leitor Frasal",
+        subtitle: "Irregularidades RR/SS/X, Agrupamento Sintático, Pontuação e Compreensão",
+        theme: { bg: "bg-rose-700", badge: "bg-rose-100 text-rose-900" },
+        games: [
+          {
+            id: "g21_forca_dupla",
+            number: 21,
+            code: "4.1.1",
+            title: "Força Dupla (RR / SS)",
+            competency: "Dígrafos Separáveis e Contraste Forte/Fraco",
+            mechanic: "gap_fill",
+            modules: [
+              {
+                id: "m1_g21",
+                title: "Módulo 1: Contraste R vs. RR e S vs. SS",
+                items: [
+                  { safeInstruction: "Ouça a frase e complete a palavra com R ou RR!", ttsPrompt: "O motor do CARRO quebrou.", stem: "CA ___ O", target: "RR", options: ["R", "RR"] },
+                  { safeInstruction: "Ouça a frase e complete a palavra com R ou RR!", ttsPrompt: "Este anel de ouro é muito CARO.", stem: "CA ___ O", target: "R", options: ["R", "RR"] },
+                  { safeInstruction: "Ouça a frase e complete a palavra com S ou SS!", ttsPrompt: "O PÁSSARO voou alto.", stem: "PÁ ___ ARO", target: "SS", options: ["S", "SS"] },
+                  { safeInstruction: "Ouça a frase e complete a palavra com S ou SS!", ttsPrompt: "O cachorro roeu o OSSO.", stem: "O ___ O", target: "SS", options: ["S", "SS"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g22_camaleao_x",
+            number: 22,
+            code: "4.1.2",
+            title: "O Camaleão X",
+            competency: "Os 4 Valores Fonéticos da Letra X",
+            mechanic: "choice",
+            modules: [
+              {
+                id: "m1_g22",
+                title: "Módulo 1: X com som de CH, CS, Z e SS",
+                items: [
+                  { safeInstruction: "Leia a palavra abaixo e identifique que som a letra X faz nela!", ttsPrompt: "Leia a palavra e diga o som do X", stimulusWord: "EXAME", target: "Som de Z (/z/)", options: ["Som de CH (/ʃ/)", "Som de CS (/ks/)", "Som de Z (/z/)", "Som de SS (/s/)"] },
+                  { safeInstruction: "Leia a palavra abaixo e identifique que som a letra X faz nela!", ttsPrompt: "Leia a palavra e diga o som do X", stimulusWord: "TÁXI", target: "Som de CS (/ks/)", options: ["Som de CH (/ʃ/)", "Som de CS (/ks/)", "Som de Z (/z/)", "Som de SS (/s/)"] },
+                  { safeInstruction: "Leia a palavra abaixo e identifique que som a letra X faz nela!", ttsPrompt: "Leia a palavra e diga o som do X", stimulusWord: "XÍCARA", target: "Som de CH (/ʃ/)", options: ["Som de CH (/ʃ/)", "Som de CS (/ks/)", "Som de Z (/z/)", "Som de SS (/s/)"] },
+                  { safeInstruction: "Leia a palavra abaixo e identifique que som a letra X faz nela!", ttsPrompt: "Leia a palavra e diga o som do X", stimulusWord: "MÁXIMO", target: "Som de SS (/s/)", options: ["Som de CH (/ʃ/)", "Som de CS (/ks/)", "Som de Z (/z/)", "Som de SS (/s/)"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g23_maestro_leitura",
+            number: 23,
+            code: "4.2.1",
+            title: "Maestro da Leitura",
+            competency: "Agrupamento Sintático (Chunking Prosódico)",
+            mechanic: "prosody_chunks",
+            modules: [
+              {
+                id: "m1_g23",
+                title: "Módulo 1: Leitura em Blocos de Significado",
+                items: [
+                  { safeInstruction: "Leia unindo as palavras de cada bloco num único fôlego!", ttsPrompt: "Leia juntando os blocos", chunks: ["O MENINO ALTO", "CHUTOU A BOLA", "NO GOL."] },
+                  { safeInstruction: "Leia unindo as palavras de cada bloco num único fôlego!", ttsPrompt: "Leia juntando os blocos", chunks: ["A MENINA FELIZ", "COMEU O BOLO", "NA ESCOLA."] },
+                  { safeInstruction: "Leia unindo as palavras de cada bloco num único fôlego!", ttsPrompt: "Leia juntando os blocos", chunks: ["O GATO PRETO", "SUBIU NO MURO", "DE NOITE."] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g24_tom_da_voz",
+            number: 24,
+            code: "4.2.2",
+            title: "O Tom da Voz",
+            competency: "Modulação Prosódica por Pontuação (. ? !)",
+            mechanic: "choice",
+            modules: [
+              {
+                id: "m1_g24",
+                title: "Módulo 1: Entonação Auditiva (Sem revelar o nome do ponto)",
+                items: [
+                  { safeInstruction: "Ouça a entonação do instrutor e escolha a pontuação correta!", ttsPrompt: "O gato subiu no muro?", stimulusWord: "O gato subiu no muro ___", target: "?", options: [".", "?", "!"] },
+                  { safeInstruction: "Ouça a entonação do instrutor e escolha a pontuação correta!", ttsPrompt: "O gato subiu no muro!", stimulusWord: "O gato subiu no muro ___", target: "!", options: [".", "?", "!"] },
+                  { safeInstruction: "Ouça a entonação do instrutor e escolha a pontuação correta!", ttsPrompt: "O gato subiu no muro.", stimulusWord: "O gato subiu no muro ___", target: ".", options: [".", "?", "!"] }
+                ]
+              }
+            ]
+          },
+          {
+            id: "g25_detetive_frase",
+            number: 25,
+            code: "4.3.1",
+            title: "Detetive da Frase",
+            competency: "Compreensão Literal Imediata Pós-Leitura",
+            mechanic: "vanishing_comprehension",
+            modules: [
+              {
+                id: "m1_g25",
+                title: "Módulo 1: Extração de Quem, Onde e O Quê",
+                items: [
+                  { safeInstruction: "Leia a frase com atenção antes de responder!", ttsPrompt: "Leia a frase em silêncio ou em voz alta", sentence: "O CÃO DORMIU NO SOFÁ DA SALA.", question: "Onde o cão dormiu?", target: "No sofá", options: ["Na cama", "No sofá", "No chão"] },
+                  { safeInstruction: "Leia a frase com atenção antes de responder!", ttsPrompt: "Leia a frase", sentence: "MARIA COMPROU PÃO QUENTE NA PADARIA.", question: "O que Maria comprou?", target: "Pão quente", options: ["Leite frio", "Bolo doce", "Pão quente"] },
+                  { safeInstruction: "Leia a frase com atenção antes de responder!", ttsPrompt: "Leia a frase", sentence: "O SAPO VERDE PULOU NA LAGOA.", question: "Quem pulou na lagoa?", target: "O sapo verde", options: ["O pato amarelo", "O sapo verde", "O peixe azul"] }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    /* =========================================================================
+       2. ESTADO GLOBAL, CONFIGURAÇÕES POR NÍVEL E GAMIFICAÇÃO (ZERO DADOS FALSOS)
+       ========================================================================= */
+    const STORAGE_KEYS = {
+      CURRICULUM_GLOBAL: 'eidos_aba_curriculum_v2',
+      STUDENT_PACKS: 'eidos_aba_student_packs_v2',
+      STUDENTS: 'eidos_aba_students_v2',
+      LOGS: 'eidos_aba_logs_v2',
+      SETTINGS: 'eidos_aba_settings_v2',
+      GAS_URL: 'eidos_aba_gas_url_v2'
+    };
+
+    const DEFAULT_SETTINGS = {
+      starsPerI: 3,
+      starsPerD: 1,
+      levels: {
+        1: { minPctI: 80, requiredDays: 2 },
+        2: { minPctI: 80, requiredDays: 2 },
+        3: { minPctI: 85, requiredDays: 2 },
+        4: { minPctI: 90, requiredDays: 3 }
+      }
+    };
+
+    const AppState = {
+      currentView: 'curriculum',
+      activeLevel: 1,
+      activeDate: new Date().toISOString().slice(0, 10),
+      activeStudentId: '',
+      globalCurriculum: [],
+      studentPacks: {}, // { studentId: { packName, curriculum } }
+      students: [],     // Inicia vazio, sem alunos falsos!
+      logs: [],
+      settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),
+
+      init() {
+        // Carregar Configurações de Critério por Nível
+        const savedSet = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+        if (savedSet) {
+          try { this.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), JSON.parse(savedSet)); } catch (e) {}
+        }
+
+        // Carregar Currículo Global
+        const savedCurr = localStorage.getItem(STORAGE_KEYS.CURRICULUM_GLOBAL);
+        if (savedCurr) {
+          try { this.globalCurriculum = JSON.parse(savedCurr); } catch (e) { this.globalCurriculum = JSON.parse(JSON.stringify(DEFAULT_CURRICULUM_DB)); }
+        } else {
+          this.globalCurriculum = JSON.parse(JSON.stringify(DEFAULT_CURRICULUM_DB));
+          this.saveGlobalCurriculum();
+        }
+
+        // Carregar Pacotes Individuais por Aluno
+        const savedPacks = localStorage.getItem(STORAGE_KEYS.STUDENT_PACKS);
+        if (savedPacks) {
+          try { this.studentPacks = JSON.parse(savedPacks); } catch (e) { this.studentPacks = {}; }
+        }
+
+        // Carregar Aprendizes Reais (Vazio por padrão)
+        const savedStu = localStorage.getItem(STORAGE_KEYS.STUDENTS);
+        if (savedStu) {
+          try { this.students = JSON.parse(savedStu); } catch (e) { this.students = []; }
+        }
+        this.activeStudentId = this.students.length ? this.students[0].id : '';
+
+        // Carregar Logs Reais
+        const savedLogs = localStorage.getItem(STORAGE_KEYS.LOGS);
+        if (savedLogs) {
+          try { this.logs = JSON.parse(savedLogs); } catch (e) { this.logs = []; }
+        }
+
+        document.getElementById('activeDateInput').value = this.activeDate;
+        const savedGas = localStorage.getItem(STORAGE_KEYS.GAS_URL);
+        if (savedGas) document.getElementById('gasUrlInput').value = savedGas;
+
+        this.renderStudentUI();
+        UI.renderCurriculumView();
+      },
+
+      /* Retorna o currículo ativo (Pacote exclusivo do aluno se houver, ou o Global) */
+      get curriculum() {
+        if (this.activeStudentId && this.studentPacks[this.activeStudentId]) {
+          return this.studentPacks[this.activeStudentId].curriculum;
+        }
+        return this.globalCurriculum;
+      },
+
+      saveActiveCurriculum() {
+        if (this.activeStudentId && this.studentPacks[this.activeStudentId]) {
+          localStorage.setItem(STORAGE_KEYS.STUDENT_PACKS, JSON.stringify(this.studentPacks));
+        } else {
+          this.saveGlobalCurriculum();
+        }
+      },
+
+      saveGlobalCurriculum() {
+        localStorage.setItem(STORAGE_KEYS.CURRICULUM_GLOBAL, JSON.stringify(this.globalCurriculum));
+      },
+      saveStudents() {
+        localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(this.students));
+      },
+      saveLogs() {
+        localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(this.logs));
+      },
+      saveSettings() {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(this.settings));
+      },
+
+      getActiveStudent() {
+        return this.students.find(s => s.id === this.activeStudentId) || null;
+      },
+
+      getRankTitle(points) {
+        if (points >= 300) return { title: 'Mestre Leitor', color: 'text-amber-400' };
+        if (points >= 150) return { title: 'Explorador Lexical', color: 'text-emerald-400' };
+        if (points >= 50) return { title: 'Detetive dos Sons', color: 'text-sky-400' };
+        return { title: 'Iniciante ABA', color: 'text-slate-300' };
+      },
+
+      setActiveDate(d) {
+        if (!d) return;
+        this.activeDate = d;
+        UI.renderCurriculumView();
+        if (this.currentView === 'dashboard') DashboardEngine.render();
+      },
+
+      selectStudent(id) {
+        this.activeStudentId = id;
+        this.renderStudentUI();
+        UI.renderCurriculumView();
+        if (this.currentView === 'dashboard') DashboardEngine.render();
+        if (this.currentView === 'editor') CurriculumManager.initEditorView();
+      },
+
+      /* CRUD COMPLETO DE APRENDIZES (CRIAR, EDITAR, EXCLUIR, PONTOS) */
+      saveStudentForm() {
+        const editId = document.getElementById('stuFormEditingId').value;
+        const name = document.getElementById('stuFormName').value.trim();
+        const grade = document.getElementById('stuFormGrade').value.trim() || 'S/T';
+        const points = Math.max(0, parseInt(document.getElementById('stuFormPoints').value, 10) || 0);
+        if (!name) return;
+
+        if (editId) {
+          const stu = this.students.find(s => s.id === editId);
+          if (stu) {
+            stu.name = name;
+            stu.grade = grade;
+            stu.points = points;
+          }
+        } else {
+          const newId = 'stu_' + Date.now();
+          this.students.push({ id: newId, name, grade, points, activePackName: 'Padrão Global' });
+          this.activeStudentId = newId;
+        }
+
+        this.saveStudents();
+        this.resetStudentForm();
+        this.renderStudentUI();
+        UI.renderCurriculumView();
+        if (this.currentView === 'dashboard') DashboardEngine.render();
+      },
+
+      editStudentInModal(id) {
+        const stu = this.students.find(s => s.id === id);
+        if (!stu) return;
+        document.getElementById('stuFormEditingId').value = stu.id;
+        document.getElementById('stuFormName').value = stu.name;
+        document.getElementById('stuFormGrade').value = stu.grade;
+        document.getElementById('stuFormPoints').value = stu.points || 0;
+        document.getElementById('stuFormSubmitBtn').textContent = 'Atualizar Aprendiz';
+        document.getElementById('stuFormCancelEditBtn').classList.remove('hidden');
+      },
+
+      resetStudentForm() {
+        document.getElementById('stuFormEditingId').value = '';
+        document.getElementById('stuFormName').value = '';
+        document.getElementById('stuFormGrade').value = '';
+        document.getElementById('stuFormPoints').value = '0';
+        document.getElementById('stuFormSubmitBtn').textContent = 'Salvar Aprendiz';
+        document.getElementById('stuFormCancelEditBtn').classList.add('hidden');
+      },
+
+      deleteStudent(id) {
+        this.students = this.students.filter(s => s.id !== id);
+        this.logs = this.logs.filter(l => l.studentId !== id);
+        delete this.studentPacks[id];
+        if (this.activeStudentId === id) {
+          this.activeStudentId = this.students.length ? this.students[0].id : '';
+        }
+        this.saveStudents();
+        this.saveLogs();
+        localStorage.setItem(STORAGE_KEYS.STUDENT_PACKS, JSON.stringify(this.studentPacks));
+        this.renderStudentUI();
+        UI.renderCurriculumView();
+        if (this.currentView === 'dashboard') DashboardEngine.render();
+      },
+
+      renderStudentUI() {
+        const sel = document.getElementById('studentSelectHeader');
+        const emptyBanner = document.getElementById('emptyStudentsBanner');
+        const ptsBadge = document.getElementById('headerStudentPointsBadge');
+        const ptsVal = document.getElementById('headerPointsValue');
+        const sideCard = document.getElementById('sidebarGamificationCard');
+
+        if (!this.students.length) {
+          sel.innerHTML = `<option value="">Sem aprendiz cadastrado</option>`;
+          emptyBanner.classList.remove('hidden');
+          ptsBadge.classList.add('hidden');
+          if (sideCard) {
+            sideCard.innerHTML = `<p class="text-xs text-slate-400">Cadastre um aprendiz no topo para ativar a gamificação.</p>`;
+          }
+        } else {
+          emptyBanner.classList.add('hidden');
+          sel.innerHTML = this.students.map(s => `<option value="${s.id}" ${s.id === this.activeStudentId ? 'selected' : ''}>${s.name} (${s.grade})</option>`).join('');
+          const activeStu = this.getActiveStudent();
+          const pts = activeStu ? (activeStu.points || 0) : 0;
+          ptsBadge.classList.remove('hidden');
+          ptsVal.textContent = `${pts} ★`;
+
+          if (sideCard && activeStu) {
+            const rank = this.getRankTitle(pts);
+            const packName = this.studentPacks[activeStu.id] ? this.studentPacks[activeStu.id].packName : 'Currículo Global';
+            sideCard.innerHTML = `
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Gamificação</span>
+                <span class="text-xs font-black text-amber-400">${pts} ★</span>
+              </div>
+              <p class="text-xs font-extrabold truncate">${activeStu.name}</p>
+              <p class="text-[11px] font-bold ${rank.color}">${rank.title}</p>
+              <div class="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                <span>Pacote:</span>
+                <span class="font-bold text-slate-200 truncate max-w-[110px]">${packName}</span>
+              </div>
+            `;
+          }
+        }
+
+        const listModal = document.getElementById('studentsListModal');
+        if (listModal) {
+          if (!this.students.length) {
+            listModal.innerHTML = `<p class="py-6 text-center text-xs text-slate-400 font-semibold">Nenhum aprendiz cadastrado ainda.</p>`;
+          } else {
+            listModal.innerHTML = this.students.map(s => {
+              const packLabel = this.studentPacks[s.id] ? this.studentPacks[s.id].packName : 'Global';
+              return `
+                <div class="py-3 flex items-center justify-between gap-2">
+                  <div>
+                    <p class="text-xs font-extrabold text-slate-800">${s.name} <span class="text-slate-400 font-semibold">(${s.grade})</span></p>
+                    <div class="flex items-center gap-2 mt-0.5">
+                      <span class="text-[11px] font-black text-amber-600">★ ${s.points || 0} pontos</span>
+                      <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">Pacote: ${packLabel}</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="AppState.editStudentInModal('${s.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Editar</button>
+                    <button onclick="AppState.deleteStudent('${s.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs">Excluir</button>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+      },
+
+      saveSettingsFromModal() {
+        [1, 2, 3, 4].forEach(lvl => {
+          const pct = Math.min(100, Math.max(10, parseInt(document.getElementById(`setLvlPct_${lvl}`).value, 10) || 80));
+          const days = Math.min(10, Math.max(1, parseInt(document.getElementById(`setLvlDays_${lvl}`).value, 10) || 2));
+          this.settings.levels[lvl] = { minPctI: pct, requiredDays: days };
+        });
+        this.settings.starsPerI = Math.max(1, parseInt(document.getElementById('setStarsI').value, 10) || 3);
+        this.settings.starsPerD = Math.max(0, parseInt(document.getElementById('setStarsD').value, 10) || 1);
+        this.saveSettings();
+        UI.closeModal('modalSettings');
+        UI.renderCurriculumView();
+        if (this.currentView === 'dashboard') DashboardEngine.render();
+      },
+
+      /* INTELIGÊNCIA DE DATA PARAMETRIZADA PELO CRITÉRIO DE CADA NÍVEL */
+      getGameMasteryStatus(gameId, levelNum = 1, studentId = this.activeStudentId) {
+        const crit = this.settings.levels[levelNum] || { minPctI: 80, requiredDays: 2 };
+        if (!studentId) {
+          return { code: 'NEVER', label: 'Sem Aluno', badgeClass: 'bg-slate-100 text-slate-500', daysPassed: 0, requiredDays: crit.requiredDays, minPctI: crit.minPctI };
+        }
+        const gameLogs = this.logs.filter(l => l.studentId === studentId && l.gameId === gameId);
+        if (!gameLogs.length) {
+          return { code: 'NEVER', label: 'Não Iniciado', badgeClass: 'bg-slate-100 text-slate-600', daysPassed: 0, requiredDays: crit.requiredDays, minPctI: crit.minPctI };
+        }
+
+        const byDate = {};
+        gameLogs.forEach(l => {
+          if (!byDate[l.date] || l.pctI >= byDate[l.date].pctI) {
+            byDate[l.date] = l;
+          }
+        });
+        const uniqueDates = Object.keys(byDate).sort();
+        const daysPassed = uniqueDates.filter(d => byDate[d].pctI >= crit.minPctI).length;
+        const lastDate = uniqueDates[uniqueDates.length - 1];
+        const lastLog = byDate[lastDate];
+
+        if (daysPassed >= crit.requiredDays) {
+          return {
+            code: 'MASTERED',
+            label: `Dominado (${daysPassed}/${crit.requiredDays}d ≥${crit.minPctI}%)`,
+            badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+            daysPassed,
+            requiredDays: crit.requiredDays,
+            minPctI: crit.minPctI,
+            byDate
+          };
+        }
+        if (daysPassed > 0 && daysPassed < crit.requiredDays) {
+          return {
+            code: 'NEEDS_RETENTION_DAY',
+            label: `${daysPassed}/${crit.requiredDays}d OK (Falta validar outro dia)`,
+            badgeClass: 'bg-amber-100 text-amber-900 border border-amber-300',
+            daysPassed,
+            requiredDays: crit.requiredDays,
+            minPctI: crit.minPctI,
+            byDate
+          };
+        }
+        return {
+          code: 'IN_TRAINING',
+          label: `Em Treino (Últ: ${lastLog.pctI}% | Meta: ${crit.minPctI}%)`,
+          badgeClass: 'bg-rose-100 text-rose-800 border border-rose-300',
+          daysPassed,
+          requiredDays: crit.requiredDays,
+          minPctI: crit.minPctI,
+          byDate
+        };
+      }
+    };
+
+    /* =========================================================================
+       NAVEGAÇÃO E MODAIS
+       ========================================================================= */
+    function switchView(viewName) {
+      AppState.currentView = viewName;
+      ['curriculum', 'player', 'dashboard', 'editor'].forEach(v => {
+        const sec = document.getElementById('view-' + v);
+        if (sec) sec.classList.toggle('hidden', v !== viewName);
+        const navBtn = document.getElementById('nav-' + v);
+        if (navBtn) {
+          navBtn.className = v === viewName
+            ? "w-full flex items-center gap-3 px-3 py-3 rounded-xl font-extrabold text-xs md:text-sm transition text-left bg-slate-900 text-white shadow-sm"
+            : "w-full flex items-center gap-3 px-3 py-3 rounded-xl font-bold text-xs md:text-sm transition text-left text-slate-600 hover:bg-slate-100";
+        }
+      });
+
+      if (viewName === 'curriculum') UI.renderCurriculumView();
+      if (viewName === 'dashboard') DashboardEngine.render();
+      if (viewName === 'editor') CurriculumManager.initEditorView();
+    }
+
+    const UI = {
+      openModal(id) {
+        const el = document.getElementById(id);
+        if (el) { el.classList.remove('hidden'); el.classList.add('flex'); }
+      },
+      closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+      },
+
+      openStudentsModal() {
+        AppState.resetStudentForm();
+        AppState.renderStudentUI();
+        this.openModal('modalStudents');
+      },
+
+      openSettingsModal() {
+        const container = document.getElementById('settingsLevelsContainer');
+        const levelNames = {
+          1: 'Nível 1: Pré-Leitor e Emergente',
+          2: 'Nível 2: Leitor Inicial',
+          3: 'Nível 3: Leitor Intermediário',
+          4: 'Nível 4: Leitor Frasal'
+        };
+        container.innerHTML = [1, 2, 3, 4].map(lvl => {
+          const cfg = AppState.settings.levels[lvl] || { minPctI: 80, requiredDays: 2 };
+          return `
+            <div class="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span class="text-xs font-extrabold text-slate-800 block">${levelNames[lvl]}</span>
+                <span class="text-[11px] text-slate-500">Critério personalizado de domínio comportamental</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div>
+                  <label class="text-[10px] font-extrabold uppercase text-slate-400 block">Mín. % [ I ]</label>
+                  <input type="number" id="setLvlPct_${lvl}" value="${cfg.minPctI}" min="10" max="100" class="w-20 px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-black text-slate-800" />
+                </div>
+                <div>
+                  <label class="text-[10px] font-extrabold uppercase text-slate-400 block">Qtd. Dias</label>
+                  <input type="number" id="setLvlDays_${lvl}" value="${cfg.requiredDays}" min="1" max="10" class="w-20 px-2.5 py-1.5 rounded-xl border border-slate-300 text-xs font-black text-slate-800" />
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('setStarsI').value = AppState.settings.starsPerI;
+        document.getElementById('setStarsD').value = AppState.settings.starsPerD;
+        this.openModal('modalSettings');
+      },
+
+      openSyncModal() {
+        CloudPackSync.initModal();
+        this.openModal('modalSync');
+      },
+
+      renderCurriculumView() {
+        const tabsContainer = document.getElementById('levelTabsContainer');
+        tabsContainer.innerHTML = AppState.curriculum.map(lvl => {
+          const isActive = lvl.level === AppState.activeLevel;
+          const crit = AppState.settings.levels[lvl.level] || { minPctI: 80, requiredDays: 2 };
+          return `
+            <button onclick="AppState.activeLevel=${lvl.level}; UI.renderCurriculumView();"
+              class="p-3.5 rounded-2xl border text-left transition flex items-center justify-between ${isActive ? `${lvl.theme.bg} text-white border-transparent shadow-md` : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800'}">
+              <div>
+                <span class="text-[10px] font-black uppercase tracking-wider ${isActive ? 'text-white/80' : 'text-slate-400'}">Nível ${lvl.level} • Meta ≥${crit.minPctI}% (${crit.requiredDays}d)</span>
+                <p class="font-extrabold text-xs md:text-sm leading-tight mt-0.5">${lvl.name.replace(`Nível ${lvl.level}: `, '')}</p>
+              </div>
+              <span class="px-2 py-1 rounded-lg text-xs font-black ${isActive ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-700'}">${lvl.games.length}</span>
+            </button>
+          `;
+        }).join('');
+
+        const currentLvlObj = AppState.curriculum.find(l => l.level === AppState.activeLevel) || AppState.curriculum[0];
+        const crit = AppState.settings.levels[currentLvlObj.level] || { minPctI: 80, requiredDays: 2 };
+        const activeStu = AppState.getActiveStudent();
+        const packName = (activeStu && AppState.studentPacks[activeStu.id]) ? AppState.studentPacks[activeStu.id].packName : 'Pacote Padrão Global';
+
+        const banner = document.getElementById('activeLevelBanner');
+        banner.className = `rounded-2xl p-4 md:p-5 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${currentLvlObj.theme.bg}`;
+        banner.innerHTML = `
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[11px] font-black uppercase tracking-widest bg-black/20 px-2.5 py-0.5 rounded-md">Pacote Ativo: ${packName}</span>
+              <span class="text-[11px] font-black uppercase tracking-widest bg-white/20 px-2.5 py-0.5 rounded-md">Critério Nível ${currentLvlObj.level}: ≥${crit.minPctI}% em ${crit.requiredDays} dias</span>
+            </div>
+            <h2 class="text-lg md:text-xl font-black mt-1.5">${currentLvlObj.name}</h2>
+            <p class="text-xs text-white/90 font-medium">${currentLvlObj.subtitle}</p>
+          </div>
+          <button onclick="UI.openSettingsModal()" class="px-3.5 py-2 rounded-xl bg-black/25 hover:bg-black/40 text-xs font-bold shrink-0 flex items-center gap-1.5 self-start md:self-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+            <span>Ajustar Critério</span>
+          </button>
+        `;
+
+        const grid = document.getElementById('gamesGridContainer');
+        grid.innerHTML = currentLvlObj.games.map(game => {
+          const status = AppState.getGameMasteryStatus(game.id, currentLvlObj.level);
+          return `
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between gap-4">
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <span class="mono text-[11px] font-extrabold px-2 py-0.5 rounded ${currentLvlObj.theme.badge}">#${game.number} • Cód ${game.code}</span>
+                  <span class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${status.badgeClass}">${status.label}</span>
+                </div>
+                <h3 class="font-extrabold text-slate-800 text-base">${game.title}</h3>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">${game.competency}</p>
+              </div>
+
+              <div class="space-y-1.5 pt-2 border-t border-slate-100">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Módulos Disponíveis:</span>
+                ${game.modules.map(mod => `
+                  <button onclick="GameEngine.startModule('${game.id}', '${mod.id}')"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-800 border border-slate-200 transition flex items-center justify-between text-xs font-bold group">
+                    <span class="truncate pr-2">${mod.title}</span>
+                    <span class="flex items-center gap-1 shrink-0 text-[11px] text-slate-400 group-hover:text-emerald-400 font-mono">
+                      ${mod.items.length} ttvs
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    };
+
+    /* =========================================================================
+       3. GAME ENGINE (SISTEMA DE DICA SILENCIOSO DO INSTRUTOR E ZERO DICA INADVERTIDA)
+       ========================================================================= */
+    const GameEngine = {
+      isRunning: false,
+      currentLevel: null,
+      currentGame: null,
+      currentModule: null,
+      trialIndex: 0,
+      sessionStars: 0,
+      trialResults: [], // [{ score: 'I'|'D'|'N', promptType: null|string }]
+      // Estado estrito: 'INDEPENDENT' | 'PROMPT_ARMED'
+      trialState: 'INDEPENDENT',
+      armedPromptType: null,
+      tempState: {},
+      timerInterval: null,
+
+      startModule(gameId, moduleId) {
+        this.clearTimer();
+        let foundLevel = null, foundGame = null, foundMod = null;
+        for (const lvl of AppState.curriculum) {
+          for (const g of lvl.games) {
+            if (g.id === gameId) {
+              foundLevel = lvl;
+              foundGame = g;
+              foundMod = g.modules.find(m => m.id === moduleId) || g.modules[0];
+            }
+          }
+        }
+        if (!foundGame || !foundMod || !foundMod.items.length) return;
+
+        this.isRunning = true;
+        this.currentLevel = foundLevel;
+        this.currentGame = foundGame;
+        this.currentModule = foundMod;
+        this.trialIndex = 0;
+        this.sessionStars = 0;
+        this.trialResults = [];
+
+        switchView('player');
+        this.loadTrial();
+      },
+
+      restartCurrentModule() {
+        if (this.currentGame && this.currentModule) {
+          this.startModule(this.currentGame.id, this.currentModule.id);
+        }
+      },
+
+      clearTimer() {
+        if (this.timerInterval) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
+        }
+      },
+
+      currentItem() {
+        return this.currentModule.items[this.trialIndex];
+      },
+
+      speakCurrentSD() {
+        const item = this.currentItem();
+        if (!item) return;
+        SoundFX.speak(item.ttsPrompt || item.safeInstruction || item.target);
+      },
+
+      /* Botão discreto para o instrutor espiar qual é o alvo oculto sem mostrar ao aluno */
+      peekTarget(show) {
+        const lbl = document.getElementById('instructorPeekLabel');
+        const item = this.currentItem();
+        if (!lbl || !item) return;
+        if (show) {
+          const secret = item.target || item.targetWordHidden || item.phoneticHidden || (item.targetSyllables ? item.targetSyllables.join('-') : '') || item.word || 'Verifique o item';
+          lbl.textContent = `Alvo: ${secret}`;
+          lbl.classList.add('text-amber-300');
+        } else {
+          lbl.textContent = 'Segure p/ Ver Alvo';
+          lbl.classList.remove('text-amber-300');
+        }
+      },
+
+      loadTrial() {
+        this.clearTimer();
+        this.trialState = 'INDEPENDENT';
+        this.armedPromptType = null;
+        this.tempState = {};
+
+        const total = this.currentModule.items.length;
+        const item = this.currentItem();
+
+        const badge = document.getElementById('playerLevelBadge');
+        badge.className = `px-2.5 py-1 rounded-lg text-xs font-extrabold uppercase ${this.currentLevel.theme.badge}`;
+        badge.textContent = `Nível ${this.currentLevel.level} • #${this.currentGame.number}`;
+
+        document.getElementById('playerGameTitle').textContent = this.currentGame.title;
+        document.getElementById('playerModuleTitle').textContent = this.currentModule.title;
+        document.getElementById('playerStarsCounter').textContent = this.sessionStars;
+        document.getElementById('playerTrialCounter').textContent = `${this.trialIndex + 1} / ${total}`;
+
+        const pct = Math.round(((this.trialIndex) / total) * 100);
+        document.getElementById('playerProgressBar').style.width = `${Math.max(8, pct)}%`;
+        document.getElementById('playerSafeInstruction').textContent = item.safeInstruction || 'Execute a tarefa proposta.';
+
+        this.syncTutorBarUI();
+        this.renderMechanicStage(item);
+      },
+
+      /* SISTEMA DE DICA DO INSTRUTOR:
+         Ao clicar em "Dar Dica", NÃO altera nada visual no palco do aluno,
+         não avança nem dá pista gráfica extra. Apenas arma o estado `PROMPT_ARMED`.
+         A partir daí:
+         - Se o aluno tocar no item certo -> computa como [ D ].
+         - Se o aluno tocar no item errado -> computa ERRO AUTOMÁTICO [ N ].
+      */
+      armInstructorPrompt() {
+        const promptType = document.getElementById('tutorPromptType').value;
+        this.trialState = 'PROMPT_ARMED';
+        this.armedPromptType = promptType;
+        this.syncTutorBarUI();
+      },
+
+      syncTutorBarUI() {
+        const dot = document.getElementById('trialStateIndicator');
+        const txt = document.getElementById('trialStateText');
+        const btnD = document.getElementById('btnTutorD');
+        const btnDLabel = document.getElementById('btnTutorDLabel');
+
+        if (this.trialState === 'INDEPENDENT') {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+          txt.textContent = 'Modo Independente [ I ]: toque certo = [I], toque errado = [N].';
+          btnD.className = 'h-10 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs flex items-center gap-1.5 transition shadow-sm';
+          btnDLabel.textContent = 'Dar Dica';
+        } else {
+          dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500';
+          txt.textContent = `Dica [${this.armedPromptType}] armada pelo instrutor (Palco inalterado). Acerto = [D] | Erro = [N].`;
+          btnD.className = 'h-10 px-3.5 rounded-xl bg-amber-700 text-amber-100 font-extrabold text-xs flex items-center gap-1.5 transition ring-2 ring-amber-400';
+          btnDLabel.textContent = `Dica Ativa (${this.armedPromptType})`;
+        }
+      },
+
+      /* Processa a resposta do aluno na tela respeitando o estado Independente vs. Dica Armada */
+      evaluateStudentAction(isCorrect, elementClicked = null) {
+        if (isCorrect) {
+          const finalScore = this.trialState === 'PROMPT_ARMED' ? 'D' : 'I';
+          this.recordTrial(finalScore);
+        } else {
+          if (elementClicked) {
+            elementClicked.classList.add('animate-shake', 'opacity-50');
+          }
+          // Erro automático tanto no modo independente quanto após dica
+          this.recordTrial('N');
+        }
+      },
+
+      recordTrial(scoreCode) {
+        this.clearTimer();
+        let finalCode = scoreCode;
+        if (this.trialState === 'PROMPT_ARMED' && scoreCode === 'I') {
+          finalCode = 'D';
+        }
+
+        const starsI = AppState.settings.starsPerI || 3;
+        const starsD = AppState.settings.starsPerD || 1;
+
+        if (finalCode === 'I') {
+          this.sessionStars += starsI;
+          SoundFX.success();
+        } else if (finalCode === 'D') {
+          this.sessionStars += starsD;
+          SoundFX.success();
+        } else {
+          SoundFX.subtleError();
+        }
+
+        this.trialResults.push({
+          score: finalCode,
+          promptType: finalCode === 'D' ? (this.armedPromptType || document.getElementById('tutorPromptType').value) : null
+        });
+        document.getElementById('playerStarsCounter').textContent = this.sessionStars;
+
+        if (this.trialIndex + 1 < this.currentModule.items.length) {
+          this.trialIndex++;
+          setTimeout(() => this.loadTrial(), 260);
+        } else {
+          setTimeout(() => this.finishModule(), 300);
+        }
+      },
+
+      finishModule() {
+        this.clearTimer();
+        this.isRunning = false;
+        document.getElementById('playerProgressBar').style.width = '100%';
+
+        const total = this.trialResults.length;
+        const countI = this.trialResults.filter(r => r.score === 'I').length;
+        const countD = this.trialResults.filter(r => r.score === 'D').length;
+        const countN = this.trialResults.filter(r => r.score === 'N').length;
+        const pctI = Math.round((countI / total) * 100);
+
+        const lvlCrit = AppState.settings.levels[this.currentLevel.level] || { minPctI: 80, requiredDays: 2 };
+        const metCriterion = pctI >= lvlCrit.minPctI;
+
+        // Se houver aprendiz ativo, gravar log e somar pontos de gamificação
+        const stu = AppState.getActiveStudent();
+        if (stu) {
+          stu.points = (stu.points || 0) + this.sessionStars;
+          AppState.saveStudents();
+          AppState.logs.push({
+            id: 'log_' + Date.now(),
+            studentId: stu.id,
+            gameId: this.currentGame.id,
+            moduleId: this.currentModule.id,
+            date: AppState.activeDate,
+            countI,
+            countD,
+            countN,
+            total,
+            pctI,
+            metCriterion
+          });
+          AppState.saveLogs();
+          AppState.renderStudentUI();
+        }
+
+        SoundFX.fanfare();
+        document.getElementById('celebPointsEarnedBadge').textContent = `+${this.sessionStars} Estrelas Acumuladas!`;
+        document.getElementById('celebCountI').textContent = `${countI} (${pctI}%)`;
+        document.getElementById('celebCountD').textContent = countD;
+        document.getElementById('celebCountN').textContent = countN;
+
+        const statusAfter = AppState.getGameMasteryStatus(this.currentGame.id, this.currentLevel.level);
+        const box = document.getElementById('celebMasteryBox');
+        if (!stu) {
+          box.className = 'p-3 rounded-xl text-xs font-bold mb-5 bg-slate-100 text-slate-700';
+          box.textContent = 'Sessão em modo demonstração (Cadastre um aprendiz no topo para salvar histórico).';
+        } else if (statusAfter.code === 'MASTERED') {
+          box.className = 'p-3 rounded-xl text-xs font-extrabold mb-5 bg-emerald-100 text-emerald-900 border border-emerald-300';
+          box.textContent = `Critério Consolidado! Atingiu ≥${lvlCrit.minPctI}% em ${statusAfter.daysPassed} dias distintos.`;
+        } else if (statusAfter.code === 'NEEDS_RETENTION_DAY') {
+          box.className = 'p-3 rounded-xl text-xs font-extrabold mb-5 bg-amber-100 text-amber-900 border border-amber-300';
+          box.textContent = `Atingiu ${pctI}% hoje (${statusAfter.daysPassed}/${lvlCrit.requiredDays} dias). Reaplique em outro dia para consolidar!`;
+        } else {
+          box.className = 'p-3 rounded-xl text-xs font-extrabold mb-5 bg-rose-100 text-rose-900 border border-rose-300';
+          box.textContent = `Independência: ${pctI}% (Meta do Nível ${this.currentLevel.level}: ≥${lvlCrit.minPctI}%). Continue o treino.`;
+        }
+
+        UI.openModal('modalCelebration');
+      },
+
+      handleVoiceInput(spokenText) {
+        const item = this.currentItem();
+        if (!item) return;
+        const target = (item.grapheme || item.word || item.target || '').toUpperCase();
+        if (target && spokenText.includes(target)) {
+          this.evaluateStudentAction(true);
+        }
+      },
+
+      /* =====================================================================
+         RENDERERS INTERATIVOS SEM DICAS INADVERTIDAS
+         ===================================================================== */
+      renderMechanicStage(item) {
+        const stage = document.getElementById('playerStage');
+        const mech = this.currentGame.mechanic;
+
+        if (mech === 'choice') return this.renderChoice(stage, item, false);
+        if (mech === 'audio_choice') return this.renderChoice(stage, item, true);
+        if (mech === 'mirror_match') return this.renderMirrorMatch(stage, item);
+        if (mech === 'reading_track') return this.renderReadingTrack(stage, item);
+        if (mech === 'syllable_drum') return this.renderSyllableDrum(stage, item);
+        if (mech === 'voice_grapheme') return this.renderVoiceGrapheme(stage, item);
+        if (mech === 'sentence_slicer') return this.renderSentenceSlicer(item);
+        if (mech === 'word_counter') return this.renderWordCounter(stage, item);
+        if (mech === 'cv_fusion') return this.renderCVFusion(stage, item);
+        if (mech === 'syllable_builder') return this.renderSyllableBuilder(stage, item);
+        if (mech === 'keyboard_spell') return this.renderKeyboardSpell(stage, item);
+        if (mech === 'ccv_fusion') return this.renderCCVFusion(stage, item);
+        if (mech === 'gap_fill') return this.renderGapFill(stage, item);
+        if (mech === 'speed_flashcard') return this.renderSpeedFlashcard(stage, item);
+        if (mech === 'prosody_chunks') return this.renderProsodyChunks(stage, item);
+        if (mech === 'vanishing_comprehension') return this.renderVanishingComp(stage, item);
+
+        this.renderChoice(stage, item, false);
+      },
+
+      // Choice & Audio Choice (Em Audio Choice não exibe a palavra-alvo no topo para não virar pareamento de identidade!)
+      renderChoice(stage, item, isAudioStimulus) {
+        const cols = item.options.length === 2 ? 'grid-cols-2' : item.options.length === 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3';
+        stage.innerHTML = `
+          ${isAudioStimulus ? `
+            <button onclick="GameEngine.speakCurrentSD()" class="mb-6 px-6 py-4 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm flex items-center gap-3 shadow-md transition active:scale-95">
+              <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              <span>Tocar Áudio do Estímulo</span>
+            </button>
+          ` : item.stimulusWord ? `
+            <div class="mb-6 px-6 py-3 rounded-2xl bg-slate-900 text-white font-black text-2xl md:text-4xl tracking-wide shadow">
+              ${item.stimulusWord}
+            </div>
+          ` : ''}
+          <div class="grid ${cols} gap-4 w-full max-w-2xl">
+            ${item.options.map(opt => `
+              <button onclick="GameEngine.evaluateStudentAction('${opt}' === '${item.target}', this)"
+                class="h-32 md:h-40 rounded-3xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-400 flex flex-col items-center justify-center p-4 transition shadow-sm active:scale-95">
+                <span class="font-black text-slate-800 ${opt.length > 6 ? 'text-lg md:text-2xl' : 'text-4xl md:text-5xl'}">${opt}</span>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      },
+
+      renderMirrorMatch(stage, item) {
+        stage.innerHTML = `
+          <div class="flex flex-col items-center mb-6">
+            <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-1">Cartão-Modelo</span>
+            <div class="w-24 h-24 rounded-3xl bg-emerald-600 text-white flex items-center justify-center font-black text-5xl shadow-md">
+              ${item.model}
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-4 w-full max-w-lg">
+            ${item.options.map(opt => `
+              <button onclick="GameEngine.evaluateStudentAction('${opt}' === '${item.target}', this)"
+                class="h-28 rounded-3xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 flex items-center justify-center font-black text-5xl text-slate-800 transition">
+                ${opt}
+              </button>
+            `).join('')}
+          </div>
+        `;
+      },
+
+      renderReadingTrack(stage, item) {
+        stage.innerHTML = `
+          <div class="w-full max-w-2xl space-y-6 text-center">
+            <div class="p-6 rounded-3xl bg-slate-50 border-2 border-slate-200">
+              <p class="text-3xl md:text-5xl font-black tracking-widest text-slate-800">${item.text}</p>
+            </div>
+            <div class="space-y-2">
+              <input type="range" min="0" max="100" value="0" id="readingTrackSlider"
+                oninput="if(Number(this.value)>=95){ this.disabled=true; GameEngine.evaluateStudentAction(true); }"
+                class="w-full h-4 bg-emerald-100 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+              <div class="flex justify-between text-xs font-extrabold text-slate-400 uppercase">
+                <span>Início (Esquerda)</span>
+                <span>Deslize o dedo →</span>
+                <span>Fim (Direita)</span>
+              </div>
+            </div>
+          </div>
+        `;
+      },
+
+      // Tambor das Sílabas (Sem exibir a palavra escrita nem fatiada!)
+      renderSyllableDrum(stage, item) {
+        this.tempState.drumHits = 0;
+        stage.innerHTML = `
+          <div class="text-center space-y-6 w-full max-w-xl">
+            <button onclick="GameEngine.speakCurrentSD()" class="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm inline-flex items-center gap-2.5 shadow">
+              <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              <span>Ouvir Palavra Falada</span>
+            </button>
+            <div class="grid grid-cols-4 gap-3">
+              ${[1, 2, 3, 4].map(n => `
+                <button id="drum_${n}" onclick="GameEngine.hitDrum(${n})"
+                  class="h-28 rounded-full border-4 border-slate-300 bg-slate-50 flex flex-col items-center justify-center transition active:scale-90">
+                  <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 3"/></svg>
+                  <span class="font-black text-sm text-slate-600 mt-1">${n}</span>
+                </button>
+              `).join('')}
+            </div>
+            <div class="flex items-center justify-center gap-3 pt-2">
+              <button onclick="GameEngine.renderSyllableDrum(document.getElementById('playerStage'), GameEngine.currentItem())" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-bold text-xs">Limpar</button>
+              <button onclick="GameEngine.evaluateStudentAction(GameEngine.tempState.drumHits === ${item.targetCount})" class="px-6 py-2.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs shadow">Confirmar Resposta</button>
+            </div>
+          </div>
+        `;
+      },
+      hitDrum(n) {
+        SoundFX.drum();
+        const btn = document.getElementById('drum_' + n);
+        if (!btn) return;
+        if (!btn.classList.contains('bg-emerald-500')) {
+          btn.className = "h-28 rounded-full border-4 border-emerald-600 bg-emerald-500 text-white flex flex-col items-center justify-center transition scale-105 shadow-md";
+          this.tempState.drumHits = (this.tempState.drumHits || 0) + 1;
+        }
+      },
+
+      // Emissão de Fonema Isolado (Sem mostrar a transcrição fonética na tela!)
+      renderVoiceGrapheme(stage, item) {
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6">
+            <div class="w-40 h-40 rounded-3xl bg-slate-900 text-white flex items-center justify-center font-black text-7xl shadow-lg">
+              ${item.grapheme}
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-3">
+              <button onclick="enviarKodular('Ouvir_Mic')" class="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs flex items-center gap-2 shadow">
+                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                <span>Microfone APK</span>
+              </button>
+              <button onclick="GameEngine.evaluateStudentAction(true)" class="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow">
+                Emitiu Som Correto
+              </button>
+            </div>
+          </div>
+        `;
+      },
+
+      // Fatiador de Frases
+      renderSentenceSlicer(item) {
+        const stage = document.getElementById('playerStage');
+        if (!this.tempState.cuts) this.tempState.cuts = new Set();
+
+        const letters = [];
+        const validBoundaries = new Set();
+        let charCursor = 0;
+
+        item.words.forEach((w, wIdx) => {
+          for (let c of w) {
+            letters.push({ char: c });
+            charCursor++;
+          }
+          if (wIdx < item.words.length - 1) {
+            validBoundaries.add(charCursor - 1);
+          }
+        });
+
+        this.tempState.validBoundaries = validBoundaries;
+        const allCut = Array.from(validBoundaries).every(b => this.tempState.cuts.has(b));
+
+        let html = `<div class="flex flex-col items-center space-y-6 w-full">
+          <p class="text-xs font-bold text-slate-400 uppercase">Toque exatamente onde devemos separar as palavras (${this.tempState.cuts.size}/${validBoundaries.size})</p>
+          <div class="flex flex-wrap items-center justify-center bg-slate-50 p-6 rounded-3xl border-2 border-slate-200">`;
+
+        letters.forEach((lObj, idx) => {
+          const isCut = this.tempState.cuts.has(idx);
+          html += `<span class="text-3xl md:text-5xl font-black tracking-tight text-slate-900">${lObj.char}</span>`;
+          if (idx < letters.length - 1) {
+            if (isCut) {
+              html += `<span class="mx-3 px-1.5 py-1 rounded bg-emerald-100 text-emerald-700 font-black text-xs">|</span>`;
+            } else {
+              html += `<button onclick="GameEngine.sliceAt(${idx})" class="w-4 md:w-6 h-12 mx-0.5 rounded hover:bg-amber-200/70 flex items-center justify-center transition group">
+                <span class="w-0.5 h-8 bg-slate-300 group-hover:bg-amber-600"></span>
+              </button>`;
+            }
+          }
+        });
+
+        html += `</div></div>`;
+        stage.innerHTML = html;
+
+        if (allCut) {
+          setTimeout(() => this.evaluateStudentAction(true), 250);
+        }
+      },
+      sliceAt(idx) {
+        if (this.tempState.validBoundaries.has(idx)) {
+          SoundFX.success();
+          this.tempState.cuts.add(idx);
+          this.renderSentenceSlicer(this.currentItem());
+        } else {
+          this.evaluateStudentAction(false, document.getElementById('playerStage'));
+        }
+      },
+
+      // Contador de Palavras Auditivo
+      renderWordCounter(stage, item) {
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6 w-full max-w-xl">
+            <button onclick="GameEngine.speakCurrentSD()" class="px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm flex items-center gap-2.5 shadow">
+              <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              <span>Ouvir Frase Falada</span>
+            </button>
+            <div class="grid grid-cols-6 gap-2.5 w-full">
+              ${[1, 2, 3, 4, 5, 6].map(n => `
+                <button onclick="GameEngine.evaluateStudentAction(${n} === ${item.target}, this)"
+                  class="h-20 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 font-black text-3xl text-slate-800 transition">
+                  ${n}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      },
+
+      renderCVFusion(stage, item) {
+        const fused = Boolean(this.tempState.fused);
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6">
+            ${!fused ? `
+              <div class="flex items-center gap-8">
+                <div class="w-28 h-28 rounded-3xl bg-slate-800 text-white flex items-center justify-center font-black text-5xl shadow">${item.c}</div>
+                <span class="font-black text-3xl text-slate-400">+</span>
+                <div class="w-28 h-28 rounded-3xl bg-amber-600 text-white flex items-center justify-center font-black text-5xl shadow">${item.v}</div>
+              </div>
+              <button onclick="GameEngine.tempState.fused=true; GameEngine.renderCVFusion(document.getElementById('playerStage'), GameEngine.currentItem());"
+                class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm shadow">
+                Fundir Sílabas
+              </button>
+            ` : `
+              <div class="w-48 h-36 rounded-3xl bg-emerald-600 text-white flex items-center justify-center font-black text-7xl shadow-xl star-pop">
+                ${item.target}
+              </div>
+              <div class="flex gap-3">
+                <button onclick="GameEngine.evaluateStudentAction(true)" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs">Leu Fluente</button>
+                <button onclick="GameEngine.evaluateStudentAction(false)" class="px-5 py-2.5 rounded-xl bg-rose-600 text-white font-extrabold text-xs">Soletrou Pausado</button>
+              </div>
+            `}
+          </div>
+        `;
+      },
+
+      // Construtor de Bloquinhos (Sem exibir a palavra pronta no topo!)
+      renderSyllableBuilder(stage, item) {
+        if (!this.tempState.built) this.tempState.built = [];
+        const built = this.tempState.built;
+
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6 w-full max-w-xl">
+            <button onclick="GameEngine.speakCurrentSD()" class="px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-extrabold text-xs flex items-center gap-2 shadow">
+              <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              <span>Ouvir Palavra para Montar</span>
+            </button>
+            <div class="flex items-center gap-3">
+              ${item.targetSyllables.map((_, idx) => `
+                <div class="w-24 h-20 rounded-2xl border-2 border-dashed ${built[idx] ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-slate-300 bg-slate-50 text-slate-300'} flex items-center justify-center font-black text-3xl">
+                  ${built[idx] || '?'}
+                </div>
+              `).join('')}
+            </div>
+            <div class="flex flex-wrap justify-center gap-3">
+              ${item.pool.map(syl => `
+                <button onclick="GameEngine.pickSyllableBlock('${syl}', this)"
+                  class="px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-700 text-white font-black text-2xl shadow transition active:scale-95">
+                  ${syl}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      },
+      pickSyllableBlock(syl, btnEl) {
+        const item = this.currentItem();
+        const expected = item.targetSyllables[this.tempState.built.length];
+        if (syl === expected) {
+          SoundFX.success();
+          this.tempState.built.push(syl);
+          this.renderSyllableBuilder(document.getElementById('playerStage'), item);
+          if (this.tempState.built.length === item.targetSyllables.length) {
+            setTimeout(() => this.evaluateStudentAction(true), 250);
+          }
+        } else {
+          this.evaluateStudentAction(false, btnEl);
+        }
+      },
+
+      // Copista Virtual (com modelo) & Ditado CVCV (sem modelo visual!)
+      renderKeyboardSpell(stage, item) {
+        if (!this.tempState.typed) this.tempState.typed = [];
+        const typed = this.tempState.typed;
+        const targetChars = item.target.split('');
+
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6 w-full max-w-xl">
+            ${item.modelVisible ? `
+              <div class="px-8 py-3 rounded-2xl bg-amber-100 border border-amber-300 text-amber-950 font-black text-4xl tracking-widest">
+                ${item.target}
+              </div>
+            ` : `
+              <button onclick="GameEngine.speakCurrentSD()" class="px-6 py-3 rounded-2xl bg-slate-900 text-white font-extrabold text-xs flex items-center gap-2 shadow">
+                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                <span>Ouvir Palavra Ditada</span>
+              </button>
+            `}
+            <div class="flex items-center gap-2">
+              ${targetChars.map((_, idx) => `
+                <div class="w-14 h-16 rounded-xl border-2 ${typed[idx] ? 'border-emerald-500 bg-emerald-50 text-emerald-900' : 'border-slate-300 bg-white'} flex items-center justify-center font-black text-3xl">
+                  ${typed[idx] || ''}
+                </div>
+              `).join('')}
+            </div>
+            <div class="flex flex-wrap justify-center gap-2.5">
+              ${item.keys.map(k => `
+                <button onclick="GameEngine.typeVirtualKey('${k}', this)"
+                  class="w-14 h-14 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-2xl shadow active:scale-90">
+                  ${k}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      },
+      typeVirtualKey(k, btnEl) {
+        const item = this.currentItem();
+        const targetChars = item.target.split('');
+        const expected = targetChars[this.tempState.typed.length];
+        if (k === expected) {
+          SoundFX.success();
+          this.tempState.typed.push(k);
+          this.renderKeyboardSpell(document.getElementById('playerStage'), item);
+          if (this.tempState.typed.length === targetChars.length) {
+            setTimeout(() => this.evaluateStudentAction(true), 250);
+          }
+        } else {
+          this.evaluateStudentAction(false, btnEl);
+        }
+      },
+
+      renderCCVFusion(stage, item) {
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6 text-center">
+            <div class="flex items-center gap-3">
+              ${item.parts.map(p => `
+                <div class="w-20 h-20 rounded-2xl bg-orange-100 border-2 border-orange-300 text-orange-950 flex items-center justify-center font-black text-4xl">${p}</div>
+              `).join('<span class="font-black text-2xl text-slate-400">+</span>')}
+              <span class="font-black text-2xl text-slate-400">=</span>
+              <div class="px-6 h-20 rounded-2xl bg-orange-600 text-white flex items-center justify-center font-black text-4xl shadow">${item.syllable}</div>
+            </div>
+            <div class="px-8 py-4 rounded-3xl bg-slate-900 text-white font-black text-4xl tracking-widest shadow">
+              ${item.word}
+            </div>
+            <div class="flex gap-3">
+              <button onclick="GameEngine.evaluateStudentAction(true)" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-extrabold text-xs">Leu Encontros Fluente</button>
+              <button onclick="GameEngine.evaluateStudentAction(false)" class="px-5 py-2.5 rounded-xl bg-rose-600 text-white font-extrabold text-xs">Omitiu / Silabou</button>
+            </div>
+          </div>
+        `;
+      },
+
+      renderGapFill(stage, item) {
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6 w-full max-w-xl">
+            <button onclick="GameEngine.speakCurrentSD()" class="px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold text-xs flex items-center gap-2">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+              <span>Ouvir Contexto / Palavra</span>
+            </button>
+            <div class="px-8 py-5 rounded-3xl bg-slate-900 text-white font-black text-4xl tracking-wider shadow">
+              ${item.stem}
+            </div>
+            <div class="grid grid-cols-${item.options.length} gap-4 w-full">
+              ${item.options.map(opt => `
+                <button onclick="GameEngine.evaluateStudentAction('${opt}' === '${item.target}', this)"
+                  class="h-24 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 font-black text-3xl text-slate-800 transition">
+                  ${opt}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      },
+
+      renderSpeedFlashcard(stage, item) {
+        let remaining = item.timeLimit || 3;
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6">
+            <div id="speedTimerBadge" class="px-4 py-1 rounded-full bg-emerald-100 text-emerald-800 font-mono font-black text-sm">
+              ${remaining.toFixed(1)}s
+            </div>
+            <div class="px-10 py-8 rounded-3xl bg-slate-900 text-white font-black text-5xl md:text-6xl tracking-wider shadow-lg">
+              ${item.word}
+            </div>
+            <div class="flex gap-3">
+              <button onclick="GameEngine.evaluateStudentAction(true)" class="px-6 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold text-xs shadow">Leu no Tempo</button>
+              <button onclick="GameEngine.evaluateStudentAction(false)" class="px-6 py-3 rounded-2xl bg-rose-600 text-white font-extrabold text-xs shadow">Não Leu / Soletrou</button>
+            </div>
+          </div>
+        `;
+        const start = Date.now();
+        this.timerInterval = setInterval(() => {
+          const elapsed = (Date.now() - start) / 1000;
+          const left = Math.max(0, (item.timeLimit || 3) - elapsed);
+          const badge = document.getElementById('speedTimerBadge');
+          if (badge) {
+            badge.textContent = `${left.toFixed(1)}s`;
+            if (left <= 0) {
+              badge.className = "px-4 py-1 rounded-full bg-rose-100 text-rose-800 font-mono font-black text-sm";
+              badge.textContent = "Tempo Esgotado (> 3s)";
+              this.clearTimer();
+            }
+          }
+        }, 100);
+      },
+
+      renderProsodyChunks(stage, item) {
+        if (!this.tempState.chunkRead) this.tempState.chunkRead = new Set();
+        stage.innerHTML = `
+          <div class="flex flex-col items-center space-y-6 w-full">
+            <p class="text-xs font-bold text-slate-400 uppercase">Toque em cada arco sintático conforme o aprendiz lê em blocos coesos:</p>
+            <div class="flex flex-wrap items-center justify-center gap-4">
+              ${item.chunks.map((ch, idx) => {
+                const done = this.tempState.chunkRead.has(idx);
+                return `
+                  <button onclick="GameEngine.markProsodyChunk(${idx})"
+                    class="px-6 py-5 rounded-3xl border-b-8 transition font-black text-xl md:text-2xl ${done ? 'bg-emerald-50 border-emerald-500 text-emerald-900' : 'bg-slate-50 border-rose-400 text-slate-800 hover:bg-slate-100'}">
+                    ${ch}
+                  </button>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      },
+      markProsodyChunk(idx) {
+        const item = this.currentItem();
+        SoundFX.success();
+        this.tempState.chunkRead.add(idx);
+        this.renderProsodyChunks(document.getElementById('playerStage'), item);
+        if (this.tempState.chunkRead.size === item.chunks.length) {
+          setTimeout(() => this.evaluateStudentAction(true), 250);
+        }
+      },
+
+      renderVanishingComp(stage, item) {
+        const revealed = Boolean(this.tempState.questionPhase);
+        if (!revealed) {
+          stage.innerHTML = `
+            <div class="flex flex-col items-center space-y-6 text-center">
+              <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-extrabold uppercase">Leia com atenção antes que a frase desapareça</span>
+              <div class="p-8 rounded-3xl bg-slate-900 text-white font-black text-2xl md:text-4xl tracking-wide shadow-lg">
+                ${item.sentence}
+              </div>
+              <button onclick="GameEngine.tempState.questionPhase=true; GameEngine.renderVanishingComp(document.getElementById('playerStage'), GameEngine.currentItem());"
+                class="px-6 py-3 rounded-2xl bg-emerald-600 text-white font-extrabold text-xs">
+                Ocultar Frase e Mostrar Pergunta →
+              </button>
+            </div>
+          `;
+        } else {
+          stage.innerHTML = `
+            <div class="flex flex-col items-center space-y-6 w-full max-w-2xl">
+              <div class="px-6 py-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-950 font-extrabold text-xl text-center">
+                ${item.question}
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+                ${item.options.map(opt => `
+                  <button onclick="GameEngine.evaluateStudentAction('${opt}' === '${item.target}', this)"
+                    class="h-24 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 font-black text-xl text-slate-800 p-4 transition">
+                    ${opt}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+      }
+    };
+
+    /* =========================================================================
+       4. CONSTRUTOR VISUAL DE MÓDULOS E TENTATIVAS (ZERO EDIÇÃO DE JSON!)
+       ========================================================================= */
+    const CurriculumManager = {
+      selectedGameId: 'g1_caca_simbolos',
+      editingModuleId: null,
+      editingItemIndex: null,
+
+      initEditorView() {
+        const sel = document.getElementById('editorGameSelect');
+        const options = [];
+        AppState.curriculum.forEach(lvl => {
+          lvl.games.forEach(g => {
+            options.push(`<option value="${g.id}" ${g.id === this.selectedGameId ? 'selected' : ''}>[Nível ${lvl.level}] #${g.number} - ${g.title}</option>`);
+          });
+        });
+        sel.innerHTML = options.join('');
+        this.renderEditorForGame(this.selectedGameId);
+      },
+
+      findGame(gameId) {
+        for (const lvl of AppState.curriculum) {
+          for (const g of lvl.games) {
+            if (g.id === gameId) return g;
+          }
+        }
+        return null;
+      },
+
+      summarizeItemForCard(game, item) {
+        const m = game.mechanic;
+        if (m === 'choice' || m === 'audio_choice') return `Alvo: [${item.target}] • Opções: ${(item.options || []).join(', ')}`;
+        if (m === 'mirror_match') return `Modelo: [${item.model}] • Opções: ${(item.options || []).join(', ')}`;
+        if (m === 'reading_track') return `Frase: "${item.text}"`;
+        if (m === 'syllable_drum') return `Palavra falada: "${item.ttsPrompt}" (${item.targetCount} sílabas)`;
+        if (m === 'voice_grapheme') return `Grafema: [${item.grapheme}]`;
+        if (m === 'sentence_slicer') return `Palavras: ${(item.words || []).join(' | ')}`;
+        if (m === 'word_counter') return `Frase falada: "${item.ttsPrompt}" (${item.target} palavras)`;
+        if (m === 'cv_fusion') return `${item.c} + ${item.v} = ${item.target}`;
+        if (m === 'syllable_builder') return `Alvo: ${(item.targetSyllables || []).join('-')} • Peças: ${(item.pool || []).join(', ')}`;
+        if (m === 'keyboard_spell') return `Palavra: [${item.target}] (${item.modelVisible ? 'Cópia Visível' : 'Ditado Oculto'})`;
+        if (m === 'ccv_fusion') return `${(item.parts || []).join('+')} = ${item.syllable} (${item.word})`;
+        if (m === 'gap_fill') return `Lacuna: "${item.stem}" -> Alvo: [${item.target}]`;
+        if (m === 'speed_flashcard') return `Palavra: [${item.word}] (< ${item.timeLimit || 3}s)`;
+        if (m === 'prosody_chunks') return `Blocos: ${(item.chunks || []).join(' / ')}`;
+        if (m === 'vanishing_comprehension') return `"${item.sentence}" -> ${item.question} [${item.target}]`;
+        return JSON.stringify(item);
+      },
+
+      renderEditorForGame(gameId) {
+        this.selectedGameId = gameId;
+        const game = this.findGame(gameId);
+        const container = document.getElementById('editorModulesContainer');
+        if (!game) return;
+
+        container.innerHTML = game.modules.map(mod => `
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
+              <div>
+                <h4 class="font-extrabold text-sm text-slate-800">${mod.title}</h4>
+                <p class="text-[11px] text-slate-500">${mod.items.length} tentativas configuradas</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button onclick="CurriculumManager.openVisualItemModal('${mod.id}', null)" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold flex items-center gap-1">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                  <span>Nova Tentativa</span>
+                </button>
+                <button onclick="CurriculumManager.openModuleTitleModal('${mod.id}')" class="px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-700">
+                  Renomear
+                </button>
+                ${game.modules.length > 1 ? `
+                  <button onclick="CurriculumManager.deleteModule('${mod.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-xs font-bold text-rose-600">
+                    Excluir Módulo
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Lista Visual de Tentativas do Módulo -->
+            <div class="space-y-2">
+              ${mod.items.map((it, idx) => `
+                <div class="bg-white p-3 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div class="space-y-0.5">
+                    <div class="flex items-center gap-2">
+                      <span class="mono text-[10px] font-black px-2 py-0.5 rounded bg-slate-100 text-slate-600">#${idx + 1}</span>
+                      <span class="text-xs font-extrabold text-slate-800">${this.summarizeItemForCard(game, it)}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Áudio TTS: "${it.ttsPrompt || it.safeInstruction || ''}"</p>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="CurriculumManager.openVisualItemModal('${mod.id}', ${idx})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">Editar</button>
+                    ${mod.items.length > 1 ? `
+                      <button onclick="CurriculumManager.deleteItem('${mod.id}', ${idx})" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs">Excluir</button>
+                    ` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('');
+      },
+
+      openModuleTitleModal(modId = null) {
+        this.editingModuleId = modId;
+        const game = this.findGame(this.selectedGameId);
+        const input = document.getElementById('moduleMetaTitleInput');
+        if (modId && game) {
+          const mod = game.modules.find(m => m.id === modId);
+          document.getElementById('moduleMetaModalTitle').textContent = 'Renomear Módulo';
+          input.value = mod ? mod.title : '';
+        } else {
+          document.getElementById('moduleMetaModalTitle').textContent = 'Criar Novo Módulo';
+          input.value = '';
+        }
+        UI.openModal('modalModuleMeta');
+      },
+
+      saveModuleMeta() {
+        const title = document.getElementById('moduleMetaTitleInput').value.trim();
+        if (!title) return;
+        const game = this.findGame(this.selectedGameId);
+        if (!game) return;
+
+        if (this.editingModuleId) {
+          const mod = game.modules.find(m => m.id === this.editingModuleId);
+          if (mod) mod.title = title;
+        } else {
+          const sample = game.modules[0] && game.modules[0].items[0]
+            ? JSON.parse(JSON.stringify(game.modules[0].items[0]))
+            : { safeInstruction: "Instrução", ttsPrompt: "Ouça", target: "A", options: ["A", "B"] };
+          game.modules.push({ id: 'mod_' + Date.now(), title, items: [sample] });
+        }
+        AppState.saveActiveCurriculum();
+        UI.closeModal('modalModuleMeta');
+        this.renderEditorForGame(this.selectedGameId);
+      },
+
+      deleteModule(modId) {
+        const game = this.findGame(this.selectedGameId);
+        if (!game || game.modules.length <= 1) return;
+        game.modules = game.modules.filter(m => m.id !== modId);
+        AppState.saveActiveCurriculum();
+        this.renderEditorForGame(this.selectedGameId);
+      },
+
+      deleteItem(modId, idx) {
+        const game = this.findGame(this.selectedGameId);
+        if (!game) return;
+        const mod = game.modules.find(m => m.id === modId);
+        if (!mod || mod.items.length <= 1) return;
+        mod.items.splice(idx, 1);
+        AppState.saveActiveCurriculum();
+        this.renderEditorForGame(this.selectedGameId);
+      },
+
+      /* ABRE FORMULÁRIO AMIGÁVEL ESPECÍFICO PARA A MECÂNICA DA TAREFA */
+      openVisualItemModal(modId, itemIdx = null) {
+        this.editingModuleId = modId;
+        this.editingItemIndex = itemIdx;
+        const game = this.findGame(this.selectedGameId);
+        const mod = game.modules.find(m => m.id === modId);
+        const existing = (itemIdx !== null && mod.items[itemIdx]) ? mod.items[itemIdx] : {};
+
+        document.getElementById('visualItemModalTitle').textContent = itemIdx !== null ? `Editar Tentativa #${itemIdx + 1}` : 'Nova Tentativa';
+        document.getElementById('visualItemMechanicSubtitle').textContent = `${game.title} (${game.competency})`;
+
+        const m = game.mechanic;
+        const container = document.getElementById('visualItemFormFields');
+
+        const fieldHTML = (id, label, val, placeholder = '') => `
+          <div>
+            <label class="text-xs font-bold text-slate-700 block mb-1">${label}</label>
+            <input type="text" id="${id}" value="${val !== undefined ? val : ''}" placeholder="${placeholder}" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold focus:outline-none" />
+          </div>
+        `;
+
+        let html = fieldHTML('vi_safeInstruction', 'Instrução na Tela (Sem entregar a resposta):', existing.safeInstruction || 'Ouça e realize a atividade!', 'Ex: Toque na opção correta!');
+        html += fieldHTML('vi_ttsPrompt', 'Fala do Áudio (TTS) quando clicar em Ouvir:', existing.ttsPrompt || '', 'Ex: Qual rima com MÃO?');
+
+        if (m === 'choice' || m === 'audio_choice') {
+          if (m === 'choice') {
+            html += fieldHTML('vi_stimulusWord', 'Palavra/Frase em Destaque no Topo (Opcional):', existing.stimulusWord || '', 'Ex: EXAME');
+          }
+          html += fieldHTML('vi_target', 'Alternativa Correta (Alvo):', existing.target || '', 'Ex: PÃO');
+          html += fieldHTML('vi_options', 'Opções de Cartões (separadas por vírgula):', (existing.options || []).join(', '), 'Ex: PÉ, PÃO, BOLA');
+        } else if (m === 'mirror_match') {
+          html += fieldHTML('vi_model', 'Letra-Modelo no Topo:', existing.model || 'b');
+          html += fieldHTML('vi_target', 'Letra Alvo Correta:', existing.target || 'b');
+          html += fieldHTML('vi_options', '3 Opções (separadas por vírgula):', (existing.options || ['d', 'b', 'p']).join(', '));
+        } else if (m === 'reading_track') {
+          html += fieldHTML('vi_text', 'Frase para Rastreio Esquerda -> Direita:', existing.text || 'O PATO NADA.');
+        } else if (m === 'syllable_drum') {
+          html += fieldHTML('vi_targetWordHidden', 'Palavra Oculta (Apenas p/ consulta do instrutor):', existing.targetWordHidden || 'MACACO');
+          html += fieldHTML('vi_targetCount', 'Quantidade Correta de Sílabas (1 a 4):', existing.targetCount || 3);
+        } else if (m === 'voice_grapheme') {
+          html += fieldHTML('vi_grapheme', 'Letra / Grafema Gigante na Tela:', existing.grapheme || 'F');
+          html += fieldHTML('vi_phoneticHidden', 'Som Esperado (Oculto p/ o instrutor):', existing.phoneticHidden || '/f/');
+        } else if (m === 'sentence_slicer') {
+          html += fieldHTML('vi_words', 'Palavras da Frase (separadas por vírgula):', (existing.words || ['O', 'SAPO', 'PULA']).join(', '), 'Ex: O, GATO, BOTA, O, OVO');
+        } else if (m === 'word_counter') {
+          html += fieldHTML('vi_target', 'Quantidade Correta de Palavras na Frase Falada:', existing.target || 4);
+        } else if (m === 'cv_fusion') {
+          html += fieldHTML('vi_c', 'Consoante:', existing.c || 'M');
+          html += fieldHTML('vi_v', 'Vogal:', existing.v || 'A');
+          html += fieldHTML('vi_target', 'Sílaba Fundida:', existing.target || 'MA');
+        } else if (m === 'syllable_builder') {
+          html += fieldHTML('vi_targetSyllables', 'Sílabas da Palavra na Ordem Certa (separadas por vírgula):', (existing.targetSyllables || ['BO', 'LO']).join(', '), 'Ex: PI, PO, CA');
+          html += fieldHTML('vi_pool', 'Bloquinhos Embaralhados na Tela (separados por vírgula):', (existing.pool || ['LO', 'PA', 'BO']).join(', '), 'Ex: CA, PI, BO, PO');
+        } else if (m === 'keyboard_spell') {
+          html += fieldHTML('vi_target', 'Palavra Alvo:', existing.target || 'SAPO');
+          html += fieldHTML('vi_keys', 'Teclas Disponíveis (separadas por vírgula):', (existing.keys || ['S', 'A', 'P', 'O', 'L', 'E']).join(', '));
+          html += `
+            <div class="flex items-center gap-2 pt-1">
+              <input type="checkbox" id="vi_modelVisible" ${existing.modelVisible ? 'checked' : ''} class="w-4 h-4 rounded" />
+              <label for="vi_modelVisible" class="text-xs font-bold text-slate-700">Mostrar modelo escrito na tela (Marque para Cópia, Desmarque para Ditado)</label>
+            </div>
+          `;
+        } else if (m === 'ccv_fusion') {
+          html += fieldHTML('vi_parts', 'Letras do Encontro Consonantal (separadas por vírgula):', (existing.parts || ['P', 'R', 'A']).join(', '));
+          html += fieldHTML('vi_syllable', 'Sílaba Resultante:', existing.syllable || 'PRA');
+          html += fieldHTML('vi_word', 'Palavra Completa:', existing.word || 'PRATO');
+        } else if (m === 'gap_fill') {
+          html += fieldHTML('vi_stem', 'Palavra com Lacuna:', existing.stem || 'CA ___ O');
+          html += fieldHTML('vi_target', 'Preenchimento Correto:', existing.target || 'RR');
+          html += fieldHTML('vi_options', 'Opções de Preenchimento (separadas por vírgula):', (existing.options || ['R', 'RR']).join(', '));
+        } else if (m === 'speed_flashcard') {
+          html += fieldHTML('vi_word', 'Palavra do Flashcard:', existing.word || 'FLORESTA');
+          html += fieldHTML('vi_timeLimit', 'Tempo Limite em Segundos:', existing.timeLimit || 3);
+        } else if (m === 'prosody_chunks') {
+          html += fieldHTML('vi_chunks', 'Blocos Sintáticos da Frase (separados por barra / ):', (existing.chunks || ['O MENINO', 'CHUTOU A BOLA']).join(' / '), 'Ex: O MENINO ALTO / CHUTOU A BOLA / NO GOL.');
+        } else if (m === 'vanishing_comprehension') {
+          html += fieldHTML('vi_sentence', 'Frase de Leitura:', existing.sentence || 'O CÃO DORMIU NO SOFÁ.');
+          html += fieldHTML('vi_question', 'Pergunta Literal:', existing.question || 'Onde o cão dormiu?');
+          html += fieldHTML('vi_target', 'Resposta Correta:', existing.target || 'No sofá');
+          html += fieldHTML('vi_options', '3 Opções (separadas por vírgula):', (existing.options || ['Na cama', 'No sofá', 'No chão']).join(', '));
+        }
+
+        container.innerHTML = html;
+        UI.openModal('modalVisualItemEditor');
+      },
+
+      saveVisualItem() {
+        const game = this.findGame(this.selectedGameId);
+        const mod = game.modules.find(m => m.id === this.editingModuleId);
+        if (!game || !mod) return;
+
+        const val = id => {
+          const el = document.getElementById(id);
+          return el ? el.value.trim() : '';
+        };
+        const list = (id, sep = ',') => val(id).split(sep).map(s => s.trim()).filter(Boolean);
+
+        const m = game.mechanic;
+        const newItem = {
+          safeInstruction: val('vi_safeInstruction') || 'Realize a atividade proposta.',
+          ttsPrompt: val('vi_ttsPrompt') || val('vi_safeInstruction')
+        };
+
+        if (m === 'choice' || m === 'audio_choice') {
+          if (val('vi_stimulusWord')) newItem.stimulusWord = val('vi_stimulusWord');
+          newItem.target = val('vi_target');
+          newItem.options = list('vi_options');
+        } else if (m === 'mirror_match') {
+          newItem.model = val('vi_model');
+          newItem.target = val('vi_target');
+          newItem.options = list('vi_options');
+        } else if (m === 'reading_track') {
+          newItem.text = val('vi_text');
+        } else if (m === 'syllable_drum') {
+          newItem.targetWordHidden = val('vi_targetWordHidden');
+          newItem.targetCount = parseInt(val('vi_targetCount'), 10) || 2;
+        } else if (m === 'voice_grapheme') {
+          newItem.grapheme = val('vi_grapheme');
+          newItem.phoneticHidden = val('vi_phoneticHidden');
+        } else if (m === 'sentence_slicer') {
+          newItem.words = list('vi_words');
+        } else if (m === 'word_counter') {
+          newItem.target = parseInt(val('vi_target'), 10) || 3;
+        } else if (m === 'cv_fusion') {
+          newItem.c = val('vi_c');
+          newItem.v = val('vi_v');
+          newItem.target = val('vi_target');
+        } else if (m === 'syllable_builder') {
+          newItem.targetSyllables = list('vi_targetSyllables');
+          newItem.pool = list('vi_pool');
+        } else if (m === 'keyboard_spell') {
+          newItem.target = val('vi_target').toUpperCase();
+          newItem.keys = list('vi_keys').map(k => k.toUpperCase());
+          newItem.modelVisible = document.getElementById('vi_modelVisible').checked;
+        } else if (m === 'ccv_fusion') {
+          newItem.parts = list('vi_parts');
+          newItem.syllable = val('vi_syllable');
+          newItem.word = val('vi_word');
+        } else if (m === 'gap_fill') {
+          newItem.stem = val('vi_stem');
+          newItem.target = val('vi_target');
+          newItem.options = list('vi_options');
+        } else if (m === 'speed_flashcard') {
+          newItem.word = val('vi_word');
+          newItem.timeLimit = parseFloat(val('vi_timeLimit')) || 3;
+        } else if (m === 'prosody_chunks') {
+          newItem.chunks = list('vi_chunks', '/');
+        } else if (m === 'vanishing_comprehension') {
+          newItem.sentence = val('vi_sentence');
+          newItem.question = val('vi_question');
+          newItem.target = val('vi_target');
+          newItem.options = list('vi_options');
+        }
+
+        if (this.editingItemIndex !== null) {
+          mod.items[this.editingItemIndex] = newItem;
+        } else {
+          mod.items.push(newItem);
+        }
+
+        AppState.saveActiveCurriculum();
+        UI.closeModal('modalVisualItemEditor');
+        this.renderEditorForGame(this.selectedGameId);
+      },
+
+      resetFactory() {
+        AppState.globalCurriculum = JSON.parse(JSON.stringify(DEFAULT_CURRICULUM_DB));
+        AppState.saveGlobalCurriculum();
+        if (AppState.activeStudentId) {
+          delete AppState.studentPacks[AppState.activeStudentId];
+          localStorage.setItem(STORAGE_KEYS.STUDENT_PACKS, JSON.stringify(AppState.studentPacks));
+        }
+        this.initEditorView();
+      }
+    };
+
+    /* =========================================================================
+       5. SINCRONIZAÇÃO INTELIGENTE DE PACOTES DA PLANILHA (CLOUD PACKS)
+       ========================================================================= */
+    const CloudPackSync = {
+      availablePacks: [],
+
+      getBuiltInPacks() {
+        // Pacotes predefinidos de demonstração caso o instrutor ainda não tenha colado a URL do Apps Script
+        const packFonico = JSON.parse(JSON.stringify(DEFAULT_CURRICULUM_DB));
+        const pack2 = JSON.parse(JSON.stringify(DEFAULT_CURRICULUM_DB));
+        pack2[0].games[0].modules[0].title = "Módulo Intensivo A: Discriminação Rápida";
+        return [
+          {
+            id: "pack_padrao_bncc",
+            name: "Pacote Base Eidos-ABA (Completo Níveis 1 a 4)",
+            description: "Banco equilibrado com os 25 jogos operacionais de linha de base e intervenção.",
+            updatedAt: "Planilha Oficial",
+            curriculum: packFonico
+          },
+          {
+            id: "pack_reforco_nivel_1_2",
+            name: "Pacote Intensivo: Consciência Fonológica & Fusão CV",
+            description: "Focado em aprendizes em fase de aquisição de pré-requisitos e decodificação inicial.",
+            updatedAt: "Planilha Oficial",
+            curriculum: pack2
+          }
+        ];
+      },
+
+      initModal() {
+        const stu = AppState.getActiveStudent();
+        document.getElementById('packTargetStudentLabel').textContent = stu ? `Aprendiz: ${stu.name}` : 'Modo Global (Sem aprendiz selecionado)';
+        document.getElementById('syncFeedbackMsg').classList.add('hidden');
+        if (!this.availablePacks.length) {
+          this.availablePacks = this.getBuiltInPacks();
+        }
+        this.renderPackSelect();
+      },
+
+      renderPackSelect() {
+        const sel = document.getElementById('cloudPacksSelect');
+        sel.innerHTML = this.availablePacks.map((p, idx) => `<option value="${idx}">${p.name}</option>`).join('');
+        this.previewSelectedPack(0);
+      },
+
+      previewSelectedPack(idx) {
+        const pack = this.availablePacks[idx];
+        const box = document.getElementById('cloudPackPreviewBox');
+        if (!pack || !box) return;
+        let totalMods = 0, totalItems = 0;
+        (pack.curriculum || []).forEach(lvl => {
+          (lvl.games || []).forEach(g => {
+            totalMods += (g.modules || []).length;
+            (g.modules || []).forEach(m => totalItems += (m.items || []).length);
+          });
+        });
+        box.innerHTML = `
+          <p class="font-extrabold text-slate-800">${pack.name}</p>
+          <p class="text-slate-500">${pack.description || 'Pacote carregado da planilha.'}</p>
+          <div class="flex items-center gap-3 pt-1 font-mono text-[11px] text-indigo-700 font-bold">
+            <span>${totalMods} Módulos</span>
+            <span>•</span>
+            <span>${totalItems} Tentativas Discretas</span>
+          </div>
+        `;
+      },
+
+      async fetchAvailablePacks() {
+        const url = document.getElementById('gasUrlInput').value.trim();
+        const msg = document.getElementById('syncFeedbackMsg');
+        msg.classList.remove('hidden');
+
+        if (!url) {
+          msg.className = "text-xs font-bold p-3 rounded-xl bg-amber-100 text-amber-900";
+          msg.textContent = "Informe a URL do seu Google Apps Script para buscar novos pacotes na planilha. Exibindo pacotes locais.";
+          this.availablePacks = this.getBuiltInPacks();
+          this.renderPackSelect();
+          return;
+        }
+
+        localStorage.setItem(STORAGE_KEYS.GAS_URL, url);
+        msg.className = "text-xs font-bold p-3 rounded-xl bg-indigo-50 text-indigo-800";
+        msg.textContent = "Consultando pacotes lançados na Planilha Google...";
+
+        try {
+          const resp = await fetch(url);
+          const data = await resp.json();
+          // Suporta { packs: [ { id, name, description, curriculum: [...] } ] } ou array direto
+          if (data && Array.isArray(data.packs) && data.packs.length > 0) {
+            this.availablePacks = data.packs;
+          } else if (Array.isArray(data) && data[0] && data[0].curriculum) {
+            this.availablePacks = data;
+          } else if (Array.isArray(data) && data[0] && data[0].games) {
+            this.availablePacks = [{
+              id: 'pack_cloud_' + Date.now(),
+              name: 'Pacote Sincronizado da Planilha',
+              description: 'Importado diretamente do endpoint Apps Script.',
+              curriculum: data
+            }];
+          } else {
+            throw new Error('Formato não reconhecido');
+          }
+          this.renderPackSelect();
+          msg.className = "text-xs font-bold p-3 rounded-xl bg-emerald-100 text-emerald-900";
+          msg.textContent = `${this.availablePacks.length} pacote(s) localizado(s) na nuvem! Selecione na lista acima.`;
+        } catch (err) {
+          msg.className = "text-xs font-bold p-3 rounded-xl bg-rose-100 text-rose-800";
+          msg.textContent = "Não foi possível listar pacotes da URL informada. Verifique a publicação do Web App.";
+        }
+      },
+
+      applySelectedPack() {
+        const idx = parseInt(document.getElementById('cloudPacksSelect').value, 10) || 0;
+        const pack = this.availablePacks[idx];
+        if (!pack) return;
+
+        const bindToStudent = document.getElementById('applyPackOnlyToStudent').checked;
+        const stu = AppState.getActiveStudent();
+        const msg = document.getElementById('syncFeedbackMsg');
+        msg.classList.remove('hidden');
+
+        if (bindToStudent && stu) {
+          AppState.studentPacks[stu.id] = {
+            packId: pack.id,
+            packName: pack.name,
+            curriculum: JSON.parse(JSON.stringify(pack.curriculum))
+          };
+          localStorage.setItem(STORAGE_KEYS.STUDENT_PACKS, JSON.stringify(AppState.studentPacks));
+          msg.className = "text-xs font-bold p-3 rounded-xl bg-emerald-100 text-emerald-900";
+          msg.textContent = `Pacote "${pack.name}" vinculado com sucesso ao aprendiz ${stu.name}!`;
+        } else {
+          AppState.globalCurriculum = JSON.parse(JSON.stringify(pack.curriculum));
+          AppState.saveGlobalCurriculum();
+          msg.className = "text-xs font-bold p-3 rounded-xl bg-emerald-100 text-emerald-900";
+          msg.textContent = `Pacote "${pack.name}" aplicado como currículo global!`;
+        }
+
+        AppState.renderStudentUI();
+        UI.renderCurriculumView();
+        if (AppState.currentView === 'editor') CurriculumManager.initEditorView();
+      }
+    };
+
+    /* =========================================================================
+       6. DASHBOARD DE INTELIGÊNCIA DE DATA E RETENÇÃO
+       ========================================================================= */
+    const DashboardEngine = {
+      render() {
+        const allGames = [];
+        AppState.curriculum.forEach(lvl => {
+          lvl.games.forEach(g => allGames.push({ ...g, level: lvl.level }));
+        });
+
+        let masteredCount = 0;
+        let pendingRetention = [];
+        let inTrainingList = [];
+
+        allGames.forEach(g => {
+          const st = AppState.getGameMasteryStatus(g.id, g.level);
+          if (st.code === 'MASTERED') masteredCount++;
+          else if (st.code === 'NEEDS_RETENTION_DAY') pendingRetention.push({ game: g, status: st });
+          else if (st.code === 'IN_TRAINING') inTrainingList.push({ game: g, status: st });
+        });
+
+        const stu = AppState.getActiveStudent();
+        const pts = stu ? (stu.points || 0) : 0;
+
+        document.getElementById('dashboardKPIs').innerHTML = `
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-[11px] font-extrabold uppercase text-slate-400">Competências Dominadas</span>
+            <p class="text-3xl font-black text-emerald-600 mt-1">${masteredCount} <span class="text-sm font-bold text-slate-400">/ ${allGames.length}</span></p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm">
+            <span class="text-[11px] font-extrabold uppercase text-amber-700">Em Validação Entre Dias</span>
+            <p class="text-3xl font-black text-amber-600 mt-1">${pendingRetention.length}</p>
+          </div>
+          <div class="bg-white p-4 rounded-2xl border border-rose-200 shadow-sm">
+            <span class="text-[11px] font-extrabold uppercase text-rose-700">Em Treino (Abaixo da Meta)</span>
+            <p class="text-3xl font-black text-rose-600 mt-1">${inTrainingList.length}</p>
+          </div>
+          <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-sm">
+            <span class="text-[11px] font-extrabold uppercase text-amber-400">Estrelas Acumuladas</span>
+            <p class="text-3xl font-black text-white mt-1">${pts} ★</p>
+          </div>
+        `;
+
+        const banner = document.getElementById('retentionActionBanner');
+        if (!stu) {
+          banner.innerHTML = `<p class="text-xs font-bold text-slate-500">Cadastre e selecione um aprendiz no topo para acompanhar a retenção entre dias.</p>`;
+        } else if (pendingRetention.length > 0) {
+          banner.innerHTML = `
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <span class="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded">Controle de Consistência Entre Dias</span>
+                <h4 class="font-extrabold text-sm text-slate-800 mt-1">Tarefas que atingiram a meta em dia anterior e precisam de reaplicação para consolidar:</h4>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                ${pendingRetention.map(item => `
+                  <button onclick="GameEngine.startModule('${item.game.id}', '${item.game.modules[0].id}')"
+                    class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-sm">
+                    <span>#${item.game.number} ${item.game.title}</span>
+                    <span class="mono bg-black/20 px-1.5 py-0.5 rounded text-[10px]">${item.status.daysPassed}/${item.status.requiredDays}d</span>
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          banner.innerHTML = `<p class="text-xs font-bold text-slate-500">Nenhuma tarefa aguardando revalidação de dia consecutivo no momento.</p>`;
+        }
+
+        const stuLogs = AppState.logs.filter(l => l.studentId === AppState.activeStudentId);
+        const dateSet = new Set(stuLogs.map(l => l.date));
+        dateSet.add(AppState.activeDate);
+        const sortedDates = Array.from(dateSet).sort().slice(-5);
+
+        document.getElementById('matrixTableHead').innerHTML = `
+          <th class="p-3">Tarefa (Meta do Nível)</th>
+          ${sortedDates.map(d => `<th class="p-3 text-center mono">${d.slice(8,10)}/${d.slice(5,7)}</th>`).join('')}
+          <th class="p-3 text-right">Status ABA</th>
+        `;
+
+        document.getElementById('matrixTableBody').innerHTML = allGames.map(g => {
+          const st = AppState.getGameMasteryStatus(g.id, g.level);
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="p-3 font-bold text-slate-800">
+                <span class="mono text-[10px] text-slate-400 mr-1">[N${g.level} ≥${st.minPctI}%/${st.requiredDays}d] #${g.number}</span>
+                ${g.title}
+              </td>
+              ${sortedDates.map(d => {
+                const entry = st.byDate && st.byDate[d];
+                if (!entry) return `<td class="p-3 text-center text-slate-300 font-mono">—</td>`;
+                const ok = entry.pctI >= st.minPctI;
+                const pill = ok
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : 'bg-rose-100 text-rose-800 border border-rose-300';
+                return `<td class="p-3 text-center"><span class="px-2 py-0.5 rounded-md font-mono font-extrabold text-[11px] ${pill}">${entry.pctI}%</span></td>`;
+              }).join('')}
+              <td class="p-3 text-right">
+                <span class="px-2.5 py-1 rounded-full text-[11px] font-extrabold ${st.badgeClass}">${st.label}</span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+      AppState.init();
+      switchView('curriculum');
+    });
+  </script>
+</body>
+</html>
